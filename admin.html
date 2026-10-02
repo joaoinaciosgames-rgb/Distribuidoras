@@ -46,6 +46,7 @@
         <datalist id="cats">
           <option value="Cervejas Lata"><option value="Long Necks"><option value="Cervejas Zero">
           <option value="Refrigerantes"><option value="Energéticos"><option value="Isotônicos">
+          <option value="Águas"><option value="Sucos"><option value="Outras bebidas">
         </datalist>
         <input id="pdesc" placeholder="Descrição (opcional)">
         <input id="ppreco" placeholder="Preço (ex.: 4,50)">
@@ -59,7 +60,7 @@
     <div class="card">
       <h2>Catálogo de produtos</h2>
       <p>Digite o preço de cada bebida e marque <b>Ativo</b> para ela aparecer na loja.
-         O preço é salvo ao sair do campo. Para colocar a foto, clique no quadrado 📷 da linha
+         O nome e o preço são salvos ao sair do campo. Para colocar a foto, clique no quadrado 📷 da linha
          e escolha a imagem (ela é reduzida automaticamente antes de enviar).</p>
       <button id="ativarTodos" class="sec" style="width:auto">Ativar todos que já têm preço</button>
       <div class="tabela">
@@ -75,8 +76,8 @@
     import { supabase, brl, esc, ROTULO } from "./config.js";
     const $ = id => document.getElementById(id);
 
-    const ORDEM = ["Cervejas Lata", "Long Necks", "Cervejas Zero",
-                   "Refrigerantes", "Energéticos", "Isotônicos"];
+    const ORDEM = ["Cervejas Lata", "Long Necks", "Cervejas Zero", "Refrigerantes",
+                   "Energéticos", "Isotônicos", "Águas", "Sucos", "Outras bebidas"];
     const pos = c => { const i = ORDEM.indexOf(c); return i < 0 ? 99 : i; };
 
     // --- só entra quem é admin ---
@@ -232,7 +233,7 @@
             </label>
             ${p.imagem_url ? `<button class="sec" data-rmfoto="${p.id}" title="Remover foto">✕</button>` : ""}
           </td>
-          <td>${esc(p.nome)}</td>
+          <td><input data-nome="${p.id}" value="${esc(p.nome)}" style="min-width:210px"></td>
           <td><input class="preco" inputmode="decimal" data-preco="${p.id}" value="${fmt(p.preco)}"></td>
           <td><input type="checkbox" data-ativo-id="${p.id}" ${p.ativo ? "checked" : ""}></td>
           <td><button data-del="${p.id}">Excluir</button></td>
@@ -310,6 +311,14 @@
         const { error } = await supabase.from("pedidos")
           .update({ status: t.value }).eq("id", d.status);
         if (error) alert(error.message); else carregarPedidos();
+      }
+
+      if (d.nome) {
+        const nome = t.value.trim();
+        if (!nome) { alert("O nome não pode ficar vazio."); return carregarProdutos(); }
+        const { error } = await supabase.from("produtos").update({ nome }).eq("id", d.nome);
+        if (error) alert(error.message);
+        return;
       }
 
       if (d.preco) {
