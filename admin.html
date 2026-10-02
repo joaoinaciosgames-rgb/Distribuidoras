@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Painel</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <header><h1>Painel do fornecedor</h1><nav><a href="index.html">Ver loja</a></nav></header>
@@ -60,9 +60,13 @@
     <div class="card">
       <h2>Catálogo de produtos</h2>
       <p>Digite o preço de cada bebida e marque <b>Ativo</b> para ela aparecer na loja.
-         O nome e o preço são salvos ao sair do campo. Para colocar a foto, clique no quadrado 📷 da linha
-         e escolha a imagem (ela é reduzida automaticamente antes de enviar).</p>
+         O nome, a descrição e o preço são salvos ao sair do campo. Para colocar uma foto, clique no quadrado 📷 da linha. Para colocar
+         <b>várias de uma vez</b>, use o botão "Enviar várias fotos de uma vez". As imagens são
+         reduzidas automaticamente antes de enviar.</p>
       <button id="ativarTodos" class="sec" style="width:auto">Ativar todos que já têm preço</button>
+      <button id="btnLote" class="sec" style="width:auto">📷 Enviar várias fotos de uma vez</button>
+      <input id="fotosLote" type="file" accept="image/*" multiple hidden>
+      <div id="lote" style="margin-top:12px"></div>
       <div class="tabela">
         <table>
           <thead><tr><th>Foto</th><th>Produto</th><th>Preço (R$)</th><th>Ativo</th><th></th></tr></thead>
@@ -99,7 +103,7 @@
         <article class="card ${p.status}">
           <h3>Pedido #${p.id} — ${brl(p.total)}</h3>
           <small>${new Date(p.created_at).toLocaleString("pt-BR")}</small>
-          <ul>${p.itens_pedido.map(i => `<li>${i.quantidade}× ${esc(i.nome)}</li>`).join("")}</ul>
+          <ul>${p.itens_pedido.map(i => `<li>${i.quantidade}× ${esc(i.nome)}${i.observacao ? `<br><small>📝 ${esc(i.observacao)}</small>` : ""}</li>`).join("")}</ul>
           <p>
             Produtos: ${brl(Number(p.total) - Number(p.taxa_entrega || 0))}<br>
             🛵 Entrega${p.bairro ? " (" + esc(p.bairro) + ")" : ""}: ${
@@ -210,6 +214,7 @@
 
     // --- catálogo de produtos ---
     let produtosPorId = {};
+    let produtosLista = [];
     const fmt = n => Number(n).toFixed(2).replace(".", ",");
 
     async function carregarProdutos() {
@@ -219,6 +224,7 @@
         (a.categoria || "").localeCompare(b.categoria || "") ||
         a.nome.localeCompare(b.nome));
       produtosPorId = Object.fromEntries(lista.map(p => [p.id, p]));
+      produtosLista = lista;
       let cat, html = "";
       for (const p of lista) {
         if (p.categoria !== cat || html === "") {
@@ -233,13 +239,108 @@
             </label>
             ${p.imagem_url ? `<button class="sec" data-rmfoto="${p.id}" title="Remover foto">✕</button>` : ""}
           </td>
-          <td><input data-nome="${p.id}" value="${esc(p.nome)}" style="min-width:210px"></td>
+          <td>
+            <input data-nome="${p.id}" value="${esc(p.nome)}" style="min-width:210px">
+            <input data-desc="${p.id}" value="${esc(p.descricao || "")}" placeholder="Descrição (opcional)"
+              style="min-width:210px;margin-top:4px;font-size:.85rem">
+          </td>
           <td><input class="preco" inputmode="decimal" data-preco="${p.id}" value="${fmt(p.preco)}"></td>
           <td><input type="checkbox" data-ativo-id="${p.id}" ${p.ativo ? "checked" : ""}></td>
           <td><button data-del="${p.id}">Excluir</button></td>
         </tr>`;
       }
       $("prods").innerHTML = html || '<tr><td colspan="5">Nenhum produto cadastrado.</td></tr>';
+    }
+
+    // --- enviar várias fotos de uma vez ---
+    let loteArquivos = [];
+
+    const tokens = s => new Set(
+      String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/(\d)([a-z])/g, "$1 $2").replace(/([a-z])(\d)/g, "$1 $2")
+        .split(/[^a-z0-9]+/).filter(Boolean));
+    const compacto = s => String(s).toLowerCase().normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+
+    function pontuar(nomeArquivo, nomeProduto) {
+      if (compacto(nomeArquivo) === compacto(nomeProduto)) return 1;
+      const a = tokens(nomeArquivo), b = tokens(nomeProduto);
+      const comuns = [...a].filter(t => b.has(t)).length;
+      const total = new Set([...a, ...b]).size;
+      return total ? comuns / total : 0;
+    }
+
+    // sugere o produto pelo nome do arquivo (só quando há um vencedor claro)
+    function sugerir(nomeArquivo) {
+      let melhor = null, nota = 0, segunda = 0;
+      for (const p of produtosLista) {
+        const n = pontuar(nomeArquivo, p.nome);
+        if (n > nota) { segunda = nota; nota = n; melhor = p; }
+        else if (n > segunda) segunda = n;
+      }
+      return nota >= 0.5 && nota > segunda ? melhor.id : "";
+    }
+
+    function desenharLote() {
+      if (!loteArquivos.length) { $("lote").innerHTML = ""; return; }
+      const opcoes = produtosLista.map(p =>
+        `<option value="${p.id}">${esc(p.nome)}${p.imagem_url ? " (já tem foto)" : ""}</option>`).join("");
+      const prontas = loteArquivos.filter(x => x.produtoId).length;
+      $("lote").innerHTML = `
+        <div class="card" style="border-color:var(--amarelo)">
+          <h3>Revise antes de enviar: ${loteArquivos.length} fotos, ${prontas} com produto escolhido</h3>
+          <p><small>Confira o produto de cada foto. Fotos sem produto escolhido serão ignoradas.</small></p>
+          <div class="tabela"><table>
+            ${loteArquivos.map((x, i) => `<tr>
+              <td><img src="${x.prev}" alt="" style="width:56px;height:56px;object-fit:contain;background:#fff;border-radius:6px"></td>
+              <td><small>${esc(x.file.name)}</small></td>
+              <td><select data-lote="${i}">
+                <option value="">— ignorar esta foto —</option>
+                ${opcoes.replace(`value="${x.produtoId}"`, `value="${x.produtoId}" selected`)}
+              </select></td></tr>`).join("")}
+          </table></div>
+          <button id="enviarLote">Enviar as fotos escolhidas</button>
+          <button id="cancelarLote" class="sec">Cancelar</button>
+          <p id="progressoLote"></p>
+        </div>`;
+    }
+
+    $("btnLote").onclick = () => $("fotosLote").click();
+    $("fotosLote").onchange = () => {
+      loteArquivos = [...$("fotosLote").files].map(file => ({
+        file,
+        prev: URL.createObjectURL(file),
+        produtoId: sugerir(file.name.replace(/\.[^.]+$/, "")),
+      }));
+      $("fotosLote").value = "";
+      desenharLote();
+    };
+
+    async function enviarLote() {
+      const itens = loteArquivos.filter(x => x.produtoId);
+      if (!itens.length) return alert("Escolha o produto de pelo menos uma foto.");
+      $("enviarLote").disabled = true;
+      let ok = 0;
+      const falhas = [];
+      for (const [n, x] of itens.entries()) {
+        $("progressoLote").textContent = `Enviando ${n + 1} de ${itens.length}...`;
+        try {
+          const antiga = produtosPorId[x.produtoId]?.imagem_url;
+          const url = await enviarFoto(x.file);
+          const { error } = await supabase.from("produtos")
+            .update({ imagem_url: url }).eq("id", x.produtoId);
+          if (error) throw error;
+          if (produtosPorId[x.produtoId]) produtosPorId[x.produtoId].imagem_url = url;
+          await apagarArquivo(antiga);
+          ok++;
+        } catch (err) {
+          falhas.push(`${x.file.name}: ${err.message || "erro"}`);
+        }
+      }
+      loteArquivos = [];
+      desenharLote();
+      await carregarProdutos();
+      alert(`${ok} foto(s) enviada(s).` + (falhas.length ? `\n\nNão enviadas:\n${falhas.join("\n")}` : ""));
     }
 
     $("ativarTodos").onclick = async () => {
@@ -313,6 +414,18 @@
         if (error) alert(error.message); else carregarPedidos();
       }
 
+      if (d.lote) {                            // trocou o produto de uma foto do lote
+        loteArquivos[Number(d.lote)].produtoId = t.value;
+        return;
+      }
+
+      if (d.desc) {
+        const { error } = await supabase.from("produtos")
+          .update({ descricao: t.value.trim() || null }).eq("id", d.desc);
+        if (error) alert(error.message);
+        return;
+      }
+
       if (d.nome) {
         const nome = t.value.trim();
         if (!nome) { alert("O nome não pode ficar vazio."); return carregarProdutos(); }
@@ -349,6 +462,12 @@
     // --- cliques (excluir, bairros) ---
     document.addEventListener("click", async e => {
       const d = e.target.dataset;
+
+      if (e.target.id === "enviarLote") return enviarLote();
+      if (e.target.id === "cancelarLote") {
+        loteArquivos = [];
+        return desenharLote();
+      }
 
       if (d.rmmarca && confirm("Remover esta imagem do topo da loja?")) {
         const antiga = configs[d.rmmarca];
