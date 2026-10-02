@@ -1,118 +1,181 @@
+/* Regras do visual: vermelho = ação principal, amarelo = preço/destaque,
+   cinza = tudo o mais. Espaços de 8/16/24px, cantos de 12px (cartões) e 8px (campos). */
 :root {
   --preto: #0d0d0d;
-  --cinza: #1a1a1a;
-  --cinza2: #262626;
-  --borda: #333;
+  --cinza: #171717;
+  --cinza2: #222;
+  --borda: #2e2e2e;
   --texto: #f4f4f4;
-  --suave: #b5b5b5;
+  --suave: #a8a8a8;
   --vermelho: #e10600;
   --vermelho2: #ff2a1f;
   --amarelo: #ffc400;
+  --azul: #4aa3ff;
+  --verde: #2ecc71;
+  --r: 12px;
+  --r2: 8px;
+  --e1: 8px;
+  --e2: 16px;
+  --e3: 24px;
 }
 * { box-sizing: border-box }
-body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
+html { scroll-behavior: smooth }
+body { font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
   background: var(--preto); color: var(--texto) }
 a { color: var(--amarelo) }
-h1, h2, h3 { margin-top: 0 }
+h1, h2, h3 { margin: 0 0 var(--e1); line-height: 1.25 }
+h2 { font-size: 1.25rem }
+h3 { font-size: 1rem }
+p { margin: 0 0 var(--e1) }
 small { color: var(--suave) }
+hr { border: 0; border-top: 1px solid var(--borda) }
+:focus-visible { outline: 2px solid var(--amarelo); outline-offset: 2px }
 
 /* ---------- topo ---------- */
-header { display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 20px; background: #000; border-bottom: 3px solid var(--vermelho) }
-header h1 { margin: 0; font-size: 1.15rem; color: var(--amarelo);
-  text-transform: uppercase; letter-spacing: .6px }
-header nav a { margin-left: 14px; color: var(--texto); text-decoration: none; font-weight: 600 }
+header { position: sticky; top: 0; z-index: 20; min-height: 56px;
+  display: flex; justify-content: space-between; align-items: center; gap: var(--e2);
+  padding: 0 var(--e2); background: #000; border-bottom: 2px solid var(--vermelho) }
+header h1 { margin: 0; font-size: 1.1rem; color: var(--amarelo) }
+header nav { display: flex; gap: var(--e2); align-items: center }
+header nav a { color: var(--texto); text-decoration: none; font-weight: 600; white-space: nowrap }
 header nav a:hover { color: var(--amarelo) }
 
 /* dois espaços para as imagens das distribuidoras */
-.marcas { max-width: 1100px; margin: 18px auto 0; padding: 0 16px;
-  display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
-.marca { height: 130px; border-radius: 14px; overflow: hidden;
-  background: linear-gradient(135deg, #1e1e1e, #090909);
-  border: 2px solid var(--vermelho); box-shadow: 0 0 18px #e1060033;
+.marcas { max-width: 1100px; margin: var(--e2) auto 0; padding: 0 var(--e2);
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--e2) }
+.marca { height: 100px; border-radius: var(--r); overflow: hidden;
+  background: var(--cinza); border: 1px solid var(--borda);
   display: flex; align-items: center; justify-content: center }
-.marca:nth-child(2) { border-color: var(--amarelo); box-shadow: 0 0 18px #ffc40033 }
-.marca img { width: 100%; height: 100%; object-fit: contain; padding: 10px }
-.marca span { font-weight: 900; text-transform: uppercase; color: var(--amarelo);
-  font-size: clamp(1rem, 3.6vw, 1.9rem); text-align: center; padding: 8px; letter-spacing: 1px }
+.marca img { width: 100%; height: 100%; object-fit: contain; padding: var(--e1) }
+.marca span { font-weight: 800; color: var(--amarelo);
+  font-size: clamp(1rem, 3.4vw, 1.6rem); text-align: center; padding: var(--e1) }
 
 /* ---------- layout ---------- */
-main { max-width: 1100px; margin: 20px auto; padding: 0 16px;
-  display: grid; grid-template-columns: 2fr 1fr; gap: 20px }
+main { max-width: 1100px; margin: var(--e3) auto; padding: 0 var(--e2);
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--e3) }
 main.um { display: block }
-main > aside.card { position: sticky; top: 12px; align-self: start }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px }
+main > aside.card { position: sticky; top: 72px; align-self: start }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--e2) }
 
 /* ---------- cartões ---------- */
-.card { background: var(--cinza); border: 1px solid var(--borda); border-radius: 12px;
-  padding: 12px; margin-bottom: 12px }
-.grid .card { margin-bottom: 0; transition: border-color .15s, transform .15s }
-.grid .card:hover { border-color: var(--amarelo); transform: translateY(-2px) }
-.card img { width: 100%; height: 160px; object-fit: contain; background: #fff; border-radius: 8px }
-.card h3 { font-size: 1rem; margin: 10px 0 4px }
-.card p { color: var(--suave); margin: 4px 0 }
-.valor { display: block; color: var(--amarelo); font-size: 1.2rem; margin: 6px 0 }
-#total { color: var(--amarelo); font-size: 1.3rem }
-.box { max-width: 380px; margin: 60px auto; background: var(--cinza);
+.card { background: var(--cinza); border: 1px solid var(--borda); border-radius: var(--r);
+  padding: var(--e2); margin-bottom: var(--e2) }
+.grid .card { margin-bottom: 0; transition: border-color .15s }
+.grid .card:hover { border-color: var(--amarelo) }
+.produto { display: flex; flex-direction: column; padding: 12px }
+.foto { aspect-ratio: 4 / 3; background: #fff; border-radius: var(--r2); margin-bottom: var(--e1);
+  display: flex; align-items: center; justify-content: center }
+.foto:empty::after { content: "🍺"; font-size: 2rem; opacity: .35 }
+.foto img { width: 100%; height: 100%; object-fit: contain; padding: var(--e1) }
+.produto h3 { min-height: 2.5em; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical }
+.produto p { color: var(--suave); font-size: .875rem }
+.rodape { margin-top: auto; padding-top: var(--e1); display: flex;
+  align-items: center; justify-content: space-between; gap: var(--e1) }
+.rodape button { padding: 8px 12px }
+.valor { color: var(--amarelo); font-size: 1.125rem; white-space: nowrap }
+.card ul { margin: var(--e1) 0; padding-left: 20px }
+
+/* carrinho */
+.carrinho h3 { margin: var(--e2) 0 var(--e1); color: var(--suave); font-size: .875rem; font-weight: 600 }
+.item { display: flex; align-items: center; gap: 12px; padding: var(--e1) 0;
+  border-bottom: 1px solid var(--borda) }
+.item .nome { flex: 1; min-width: 0 }
+.item .sub { display: block; color: var(--suave); font-size: .875rem }
+.qtd { display: flex; align-items: center; gap: var(--e1) }
+.qtd button { width: 32px; height: 32px; padding: 0 }
+.qtd b { min-width: 1.5em; text-align: center }
+.vazio { color: var(--suave) }
+.resumo { margin: var(--e2) 0; padding-top: var(--e1); border-top: 1px solid var(--borda) }
+.resumo div { display: flex; justify-content: space-between; gap: var(--e1);
+  padding: 2px 0; color: var(--suave) }
+.resumo .tot { margin-top: var(--e1); padding-top: var(--e1); color: var(--texto);
+  border-top: 1px solid var(--borda); font-size: 1.1rem }
+#total { color: var(--amarelo); font-size: 1.4rem }
+#finalizar { padding: 14px; font-size: 1.05rem }
+
+/* login */
+.box { max-width: 400px; margin: 8vh auto; background: var(--cinza);
   border: 1px solid var(--borda); border-top: 4px solid var(--vermelho);
-  padding: 20px; border-radius: 12px }
-.box h1 { color: var(--amarelo) }
+  padding: var(--e3); border-radius: var(--r) }
+.box h1 { color: var(--amarelo); font-size: 1.4rem }
+.dica { color: var(--suave); margin-bottom: var(--e2) }
+#msg { margin-top: var(--e2) }
+#msg:empty { display: none }
+#aviso:not(:empty) { background: #12261a; border: 1px solid var(--verde); color: #b9f0cd;
+  padding: 12px var(--e2); border-radius: var(--r2); margin-bottom: var(--e2) }
 
 /* ---------- campos e botões ---------- */
-input, textarea, select, button { width: 100%; padding: 10px; margin: 4px 0;
-  font: inherit; border-radius: 8px; border: 1px solid var(--borda) }
-input, textarea, select { background: #111; color: var(--texto) }
+input, textarea, select { width: 100%; padding: 10px 12px; margin: 0 0 var(--e1);
+  font: inherit; border-radius: var(--r2); border: 1px solid var(--borda);
+  background: #0f0f0f; color: var(--texto) }
+textarea { min-height: 76px; resize: vertical }
 input::placeholder, textarea::placeholder { color: #777 }
-input:focus, textarea:focus, select:focus { outline: 2px solid var(--amarelo); outline-offset: 0 }
 option { background: #111; color: #fff }
-button { background: var(--vermelho); color: #fff; border: 0; cursor: pointer; font-weight: 700 }
+button { font: inherit; font-weight: 700; padding: 10px var(--e2); border: 0;
+  border-radius: var(--r2); background: var(--vermelho); color: #fff; cursor: pointer;
+  transition: background .15s }
 button:hover { background: var(--vermelho2) }
-button.sec { background: #333; color: #fff }
-button.sec:hover { background: #444 }
+button.sec { background: var(--cinza2); color: var(--texto); border: 1px solid var(--borda) }
+button.sec:hover { background: #2c2c2c; border-color: #444 }
+.card > button, .box > button { width: 100%; margin-top: var(--e1) }
+.acoes { display: flex; gap: var(--e1); margin-top: var(--e1) }
+.acoes select { flex: 1; margin: 0 }
 
 /* ---------- status dos pedidos ---------- */
-.novo { border-left: 6px solid var(--vermelho) }
-.preparando { border-left: 6px solid var(--amarelo) }
-.saiu_entrega { border-left: 6px solid #4aa3ff }
-.entregue { border-left: 6px solid #2ecc71 }
-.cancelado { opacity: .5 }
+.card.novo { border-left: 4px solid var(--vermelho) }
+.card.preparando { border-left: 4px solid var(--amarelo) }
+.card.saiu_entrega { border-left: 4px solid var(--azul) }
+.card.entregue { border-left: 4px solid var(--verde) }
+.card.cancelado { opacity: .55 }
+.selo { display: inline-block; margin-left: var(--e1); padding: 2px 10px; border-radius: 999px;
+  font-size: .75rem; font-weight: 700; vertical-align: middle; color: #000 }
+.selo.novo { background: var(--vermelho); color: #fff }
+.selo.preparando { background: var(--amarelo) }
+.selo.saiu_entrega { background: var(--azul) }
+.selo.entregue { background: var(--verde) }
+.selo.cancelado { background: #777 }
 
 /* ---------- categorias e busca da loja ---------- */
-h2.cat { margin: 26px 0 10px; font-size: 1.15rem; text-transform: uppercase;
-  letter-spacing: .5px; padding-left: 10px; border-left: 5px solid var(--vermelho);
-  scroll-margin-top: 20px }
-.chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 }
-.chips a { background: #111; padding: 6px 14px; border-radius: 20px; text-decoration: none;
-  color: var(--amarelo); border: 1px solid var(--amarelo); font-size: .9rem; font-weight: 600 }
-.chips a:hover { background: var(--amarelo); color: #000 }
+h2.cat { margin: var(--e3) 0 12px; font-size: 1.15rem; scroll-margin-top: 120px }
+h2.cat::after { content: ""; display: block; width: 32px; height: 3px; margin-top: 6px;
+  background: var(--vermelho); border-radius: 2px }
+.chips { display: flex; gap: var(--e1); overflow-x: auto; scrollbar-width: none;
+  position: sticky; top: 56px; z-index: 10; background: var(--preto); padding: var(--e1) 0 }
+.chips a { flex: none; padding: 6px 14px; border-radius: 999px; text-decoration: none;
+  color: var(--texto); background: var(--cinza2); border: 1px solid var(--borda);
+  font-size: .9rem; font-weight: 600 }
+.chips a:hover { background: var(--amarelo); border-color: var(--amarelo); color: #000 }
 
 /* ---------- painel: catálogo ---------- */
-.tabela { overflow-x: auto }
+.tabela { overflow-x: auto; margin-top: var(--e2) }
 table { width: 100%; border-collapse: collapse }
-td, th { padding: 6px 10px; border-bottom: 1px solid var(--borda); text-align: left }
-th { color: var(--amarelo) }
-tr.cat td { background: var(--cinza2); font-weight: bold; color: var(--amarelo) }
+td, th { padding: var(--e1) 12px; border-bottom: 1px solid var(--borda); text-align: left }
+th { color: var(--suave); font-size: .875rem; font-weight: 600 }
+tr.cat td { background: var(--cinza2); font-weight: 700; color: var(--amarelo) }
 td input { margin: 0 }
 td input.preco { max-width: 110px }
 td input[type=checkbox] { width: auto }
-td button { width: auto; padding: 6px 10px; margin: 0 }
+td button { padding: 6px 10px }
 
 .fotobtn { display: inline-block; cursor: pointer; vertical-align: middle }
 .fotobtn img { width: 48px; height: 48px; object-fit: contain; background: #fff;
   border: 1px solid var(--borda); border-radius: 6px; display: block }
-.semfoto { width: 48px; height: 48px; border: 2px dashed #666; border-radius: 6px;
+.semfoto { width: 48px; height: 48px; border: 2px dashed #555; border-radius: 6px;
   display: flex; align-items: center; justify-content: center; font-size: 1.3rem }
-
-/* painel: imagens do topo */
-.prevmarca { height: 80px; margin: 6px 0; border: 1px dashed #666; border-radius: 8px;
+.prevmarca { height: 80px; margin: 6px 0; border: 1px dashed #555; border-radius: var(--r2);
   background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden }
-.prevmarca img { width: 100%; height: 100%; object-fit: contain; background: none; border-radius: 0 }
+.prevmarca img { width: 100%; height: 100%; object-fit: contain }
 
 @media (max-width: 800px) {
   main { grid-template-columns: 1fr }
   main > aside.card { position: static }
-  .marca { height: 90px }
+  .marca { height: 72px }
   header h1 { font-size: 1rem }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; scroll-behavior: auto !important }
 }
 
 /* impressão: fundo branco para economizar tinta */
@@ -120,5 +183,5 @@ td button { width: auto; padding: 6px 10px; margin: 0 }
   body { background: #fff; color: #000 }
   .card { background: #fff; color: #000; border: 1px solid #999 }
   .card p, small { color: #333 }
-  header, .marcas, select, button, nav { display: none }
+  header, .marcas, select, button, nav, .acoes { display: none }
 }
