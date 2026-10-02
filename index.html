@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Bebidas em casa</title>
   <meta name="theme-color" content="#000000">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <header>
@@ -18,35 +18,13 @@
     <div class="marca" id="marca2"><span>Tereza Bicuda</span></div>
   </section>
 
-  <main>
-    <section>
-      <input id="busca" type="search" placeholder="🔍 Buscar bebida (ex.: heineken, coca, monster)">
-      <div id="chips" class="chips"></div>
-      <div id="produtos"></div>
-    </section>
-
-    <aside class="card">
-      <h2>Seu pedido</h2>
-      <div id="itens"></div>
-
-      <select id="bairro"></select>
-      <textarea id="endereco" placeholder="Endereço de entrega (rua, número, referência)"></textarea>
-      <input id="telefone" placeholder="Telefone / WhatsApp">
-      <input id="obs" placeholder="Observação (ex.: gelada, troco para 100)">
-      <select id="pagamento">
-        <option>Pix na entrega</option>
-        <option>Dinheiro</option>
-        <option>Cartão na entrega</option>
-      </select>
-
-      <p>
-        Produtos: <span id="subtotal">R$ 0,00</span><br>
-        Entrega: <span id="taxa">escolha o bairro</span><br>
-        Total: <b id="total">R$ 0,00</b>
-      </p>
-      <button id="finalizar">Finalizar pedido</button>
-    </aside>
+  <main class="um com-barra">
+    <input id="busca" type="search" placeholder="🔍 Buscar bebida (ex.: heineken, coca, monster)">
+    <div id="chips" class="chips"></div>
+    <div id="produtos"></div>
   </main>
+
+  <a id="barra" class="barra-pedido" href="carrinho.html" hidden>🛒 Ver meu pedido</a>
 
   <script type="module">
     import { supabase, brl, esc } from "./config.js";
@@ -57,23 +35,35 @@
                    "Energéticos", "Isotônicos", "Águas", "Sucos", "Outras bebidas"];
     const pos = c => { const i = ORDEM.indexOf(c); return i < 0 ? 99 : i; };
 
+    // --- carrinho: { idDoProduto: { q: quantidade, obs: "observação do item" } } ---
+    function lerCarrinho() {
+      let c = {};
+      try { c = JSON.parse(localStorage.getItem("carrinho") || "{}"); } catch { c = {}; }
+      for (const id of Object.keys(c)) {
+        if (typeof c[id] === "number") c[id] = { q: c[id], obs: "" };   // formato antigo
+        if (!c[id] || !(c[id].q > 0)) delete c[id];
+      }
+      return c;
+    }
+    let carrinho = lerCarrinho();
+    const salvar = () => localStorage.setItem("carrinho", JSON.stringify(carrinho));
+
     // --- sessão e menu ---
     const { data: { session } } = await supabase.auth.getSession();
     let perfil = null;
     if (session) {
-      ({ data: perfil } = await supabase.from("profiles").select("*")
+      ({ data: perfil } = await supabase.from("profiles").select("is_admin")
         .eq("id", session.user.id).single());
-      $("nav").innerHTML =
-        (perfil?.is_admin ? '<a href="admin.html">Painel</a>' : "") +
-        '<a href="pedidos.html">Meus pedidos</a><a href="#" id="sair">Sair</a>';
-      $("sair").onclick = async e => {
-        e.preventDefault(); await supabase.auth.signOut(); location.reload();
-      };
-      $("endereco").value = perfil?.endereco ?? "";
-      $("telefone").value = perfil?.telefone ?? "";
-    } else {
-      $("nav").innerHTML = '<a href="login.html">Entrar / Criar conta</a>';
     }
+    $("nav").innerHTML =
+      '<a href="carrinho.html" id="navCarrinho">🛒 Seu pedido</a>' +
+      (perfil?.is_admin ? '<a href="admin.html">Painel</a>' : "") +
+      (session
+        ? '<a href="pedidos.html">Meus pedidos</a><a href="#" id="sair">Sair</a>'
+        : '<a href="login.html">Entrar</a>');
+    if (session) $("sair").onclick = async e => {
+      e.preventDefault(); await supabase.auth.signOut(); location.reload();
+    };
 
     // --- imagens das distribuidoras no topo ---
     const { data: cfg } = await supabase.from("configuracoes").select("*");
@@ -83,10 +73,18 @@
         if (conf[chave]) $(id).innerHTML = `<img src="${esc(conf[chave])}" alt="${esc(nome)}">`;
       });
 
-    // --- produtos agrupados por categoria ---
+    // --- produtos ---
     const { data } = await supabase.from("produtos").select("*")
       .eq("ativo", true).order("nome");
     const produtos = data || [];
+
+    // botão "Adicionar" ou quantidade (− 2 +) de cada cartão
+    function acoes(id) {
+      const l = carrinho[id];
+      return l
+        ? `<div class="stepper"><button data-menos="${id}">−</button><span>${l.q}</span><button data-mais="${id}">+</button></div>`
+        : `<button data-mais="${id}">Adicionar</button>`;
+    }
 
     function desenharProdutos() {
       const termo = $("busca").value.trim().toLowerCase();
@@ -104,92 +102,42 @@
               <h3>${esc(p.nome)}</h3>
               ${p.descricao ? `<p>${esc(p.descricao)}</p>` : ""}
               <b class="valor">${brl(p.preco)}</b>
-              <button data-mais="${p.id}">Adicionar</button>
+              <div data-acoes="${p.id}">${acoes(p.id)}</div>
             </article>`).join("")}
         </div>`).join("") ||
         `<p>${produtos.length ? "Nenhuma bebida encontrada." : "Nenhum produto disponível ainda."}</p>`;
     }
     $("busca").oninput = desenharProdutos;
-    desenharProdutos();
 
-    // --- bairros e taxas ---
-    const { data: bs } = await supabase.from("bairros").select("*")
-      .eq("ativo", true).order("nome");
-    const bairros = bs || [];
-    $("bairro").innerHTML =
-      '<option value="">Escolha seu bairro</option>' +
-      bairros.map(b => `<option value="${b.id}">${esc(b.nome)} — ${
-        Number(b.taxa) === 0 ? "entrega grátis" : brl(b.taxa)}</option>`).join("");
-    const bairroSalvo = localStorage.getItem("bairro");
-    if (bairroSalvo && bairros.some(b => b.id == bairroSalvo)) $("bairro").value = bairroSalvo;
-    $("bairro").onchange = () => {
-      localStorage.setItem("bairro", $("bairro").value);
-      desenhar();
-    };
-
-    // --- carrinho: { idDoProduto: quantidade } ---
-    let carrinho = JSON.parse(localStorage.getItem("carrinho") || "{}");
-
-    function desenhar() {
-      let subtotal = 0;
-      $("itens").innerHTML = Object.entries(carrinho).map(([id, q]) => {
+    // --- barra do pedido (rodapé) e contador do menu ---
+    function atualizarBarra() {
+      let itens = 0, total = 0;
+      for (const [id, l] of Object.entries(carrinho)) {
         const p = produtos.find(x => x.id == id);
-        if (!p) return "";
-        subtotal += Number(p.preco) * q;
-        return `<div>${esc(p.nome)} × ${q}
-          <button data-menos="${id}" style="width:auto">−</button>
-          <button data-mais="${id}" style="width:auto">+</button></div>`;
-      }).join("") || "<p>Carrinho vazio</p>";
-
-      const b = bairros.find(x => x.id == $("bairro").value);
-      const taxa = b ? Number(b.taxa) : 0;
-      $("subtotal").textContent = brl(subtotal);
-      $("taxa").textContent = b ? (taxa > 0 ? brl(taxa) : "Grátis") : "escolha o bairro";
-      $("total").textContent = brl(subtotal + taxa);
-    }
-    function salvar() {
-      localStorage.setItem("carrinho", JSON.stringify(carrinho));
-      desenhar();
+        if (!p) continue;
+        itens += l.q;
+        total += Number(p.preco) * l.q;
+      }
+      $("barra").hidden = itens === 0;
+      $("barra").textContent = `🛒 Ver meu pedido · ${itens} ${itens === 1 ? "item" : "itens"} · ${brl(total)}`;
+      $("navCarrinho").textContent = itens ? `🛒 Seu pedido (${itens})` : "🛒 Seu pedido";
     }
 
     document.addEventListener("click", e => {
       const d = e.target.dataset;
       const id = d.mais || d.menos;
       if (!id) return;
-      carrinho[id] = (carrinho[id] || 0) + (d.mais ? 1 : -1);
-      if (carrinho[id] <= 0) delete carrinho[id];
+      const l = carrinho[id] || { q: 0, obs: "" };
+      l.q += d.mais ? 1 : -1;
+      if (l.q <= 0) delete carrinho[id]; else carrinho[id] = l;
       salvar();
+      const alvo = document.querySelector(`[data-acoes="${id}"]`);
+      if (alvo) alvo.innerHTML = acoes(id);
+      atualizarBarra();
     });
-    desenhar();
 
-    // --- finalizar ---
-    $("finalizar").onclick = async () => {
-      if (!session) return (location.href = "login.html?volta=index.html");
-      const itens = Object.entries(carrinho)
-        .map(([id, q]) => ({ produto_id: Number(id), quantidade: q }));
-      if (!itens.length) return alert("Seu carrinho está vazio.");
-      if (!bairros.length) return alert("As entregas ainda não foram configuradas. Tente mais tarde.");
-      if (!$("bairro").value) return alert("Escolha o seu bairro.");
-      if (!$("endereco").value.trim() || !$("telefone").value.trim())
-        return alert("Informe o endereço e o telefone.");
-
-      const { data: id, error } = await supabase.rpc("criar_pedido", {
-        p_itens: itens,
-        p_bairro_id: Number($("bairro").value),
-        p_endereco: $("endereco").value,
-        p_telefone: $("telefone").value,
-        p_observacao: $("obs").value,
-        p_pagamento: $("pagamento").value,
-      });
-      if (error) return alert(error.message);
-
-      await supabase.from("profiles")
-        .update({ endereco: $("endereco").value, telefone: $("telefone").value })
-        .eq("id", session.user.id);
-
-      carrinho = {}; salvar();
-      location.href = "pedidos.html?novo=" + id;
-    };
+    desenharProdutos();
+    atualizarBarra();
   </script>
 </body>
 </html>
