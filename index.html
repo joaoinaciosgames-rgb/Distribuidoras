@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Minha Loja</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🍔 Minha Loja</h1>
+    <nav id="nav"></nav>
+  </header>
+
+  <main>
+    <section id="produtos" class="grid"></section>
+
+    <aside class="card">
+      <h2>Seu pedido</h2>
+      <div id="itens"></div>
+      <p>Total: <b id="total">R$ 0,00</b></p>
+      <textarea id="endereco" placeholder="Endereço de entrega (rua, número, bairro, referência)"></textarea>
+      <input id="telefone" placeholder="Telefone / WhatsApp">
+      <input id="obs" placeholder="Observação (ex.: sem cebola)">
+      <select id="pagamento">
+        <option>Pix na entrega</option>
+        <option>Dinheiro</option>
+        <option>Cartão na entrega</option>
+      </select>
+      <button id="finalizar">Finalizar pedido</button>
+    </aside>
+  </main>
+
+  <script type="module">
+    import { supabase, brl, esc } from "./config.js";
+    const $ = id => document.getElementById(id);
+
+    // --- sessão e menu ---
+    const { data: { session } } = await supabase.auth.getSession();
+    let perfil = null;
+    if (session) {
+      ({ data: perfil } = await supabase.from("profiles").select("*")
+        .eq("id", session.user.id).single());
+      $("nav").innerHTML =
+        (perfil?.is_admin ? '<a href="admin.html">Painel</a>' : "") +
+        '<a href="pedidos.html">Meus pedidos</a><a href="#" id="sair">Sair</a>';
+      $("sair").onclick = async e => {
+        e.preventDefault(); await supabase.auth.signOut(); location.reload();
+      };
+      $("endereco").value = perfil?.endereco ?? "";
+      $("telefone").value = perfil?.telefone ?? "";
+    } else {
+      $("nav").innerHTML = '<a href="login.html">Entrar / Criar conta</a>';
+    }
+
+    // --- produtos ---
+    const { data } = await supabase.from("produtos").select("*")
+      .eq("ativo", true).order("nome");
+    const produtos = data || [];
+    $("produtos").innerHTML = produtos.map(p => `
+      <article class="card">
+        ${p.imagem_url ? `<img src="${esc(p.imagem_url)}" alt="">` : ""}
+        <h3>${esc(p.nome)}</h3>
+        <p>${esc(p.descricao)}</p>
+        <b>${brl(p.preco)}</b>
+        <button data-mais="${p.id}">Adicionar</button>
+      </article>`).join("") || "<p>Nenhum produto cadastrado ainda.</p>";
+
+    // --- carrinho: { idDoProduto: quantidade } ---
+    let carrinho = JSON.parse(localStorage.getItem("carrinho") || "{}");
+
+    function desenhar() {
+      let total = 0;
+      $("itens").innerHTML = Object.entries(carrinho).map(([id, q]) => {
+        const p = produtos.find(x => x.id == id);
+        if (!p) return "";
+        total += p.preco * q;
+        return `<div>${esc(p.nome)} × ${q}
+          <button data-menos="${id}" style="width:auto">−</button>
+          <button data-mais="${id}" style="width:auto">+</button></div>`;
+      }).join("") || "<p>Carrinho vazio</p>";
+      $("total").textContent = brl(total);
+    }
+    function salvar() {
+      localStorage.setItem("carrinho", JSON.stringify(carrinho));
+      desenhar();
+    }
+
+    document.addEventListener("click", e => {
+      const d = e.target.dataset;
+      const id = d.mais || d.menos;
+      if (!id) return;
+      carrinho[id] = (carrinho[id] || 0) + (d.mais ? 1 : -1);
+      if (carrinho[id] <= 0) delete carrinho[id];
+      salvar();
+    });
+    desenhar();
+
+    // --- finalizar ---
+    $("finalizar").onclick = async () => {
+      if (!session) return (location.href = "login.html?volta=index.html");
+      const itens = Object.entries(carrinho)
+        .map(([id, q]) => ({ produto_id: Number(id), quantidade: q }));
+      if (!itens.length) return alert("Seu carrinho está vazio.");
+      if (!$("endereco").value.trim() || !$("telefone").value.trim())
+        return alert("Informe o endereço e o telefone.");
+
+      const { data: id, error } = await supabase.rpc("criar_pedido", {
+        p_itens: itens,
+        p_endereco: $("endereco").value,
+        p_telefone: $("telefone").value,
+        p_observacao: $("obs").value,
+        p_pagamento: $("pagamento").value,
+      });
+      if (error) return alert(error.message);
+
+      // guarda endereço/telefone para a próxima compra
+      await supabase.from("profiles")
+        .update({ endereco: $("endereco").value, telefone: $("telefone").value })
+        .eq("id", session.user.id);
+
+      carrinho = {}; salvar();
+      location.href = "pedidos.html?novo=" + id;
+    };
+  </script>
+</body>
+</html>

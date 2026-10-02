@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Painel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header><h1>Painel do fornecedor</h1><nav><a href="index.html">Ver loja</a></nav></header>
+  <main style="grid-template-columns:2fr 1fr">
+    <section>
+      <button id="ativar" class="sec">🔔 Ativar som e notificações</button>
+      <h2>Pedidos</h2>
+      <div id="lista"></div>
+    </section>
+
+    <aside>
+      <div class="card">
+        <h2>Novo produto</h2>
+        <input id="pnome" placeholder="Nome">
+        <input id="pdesc" placeholder="Descrição">
+        <input id="ppreco" placeholder="Preço (ex.: 25,90)">
+        <input id="foto" type="file" accept="image/*">
+        <button id="salvarProduto">Cadastrar produto</button>
+      </div>
+      <div class="card"><h2>Produtos</h2><div id="prods"></div></div>
+    </aside>
+  </main>
+
+  <script type="module">
+    import { supabase, brl, esc, ROTULO } from "./config.js";
+    const $ = id => document.getElementById(id);
+
+    // --- só entra quem é admin ---
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { location.href = "login.html?volta=admin.html"; throw new Error("sem sessão"); }
+    const { data: perfil } = await supabase.from("profiles")
+      .select("is_admin").eq("id", session.user.id).single();
+    if (!perfil?.is_admin) {
+      document.body.innerHTML = "<p style='padding:30px'>Acesso negado.</p>";
+      throw new Error("sem acesso");
+    }
+
+    // --- pedidos ---
+    async function carregarPedidos() {
+      const { data } = await supabase.from("pedidos")
+        .select("*, itens_pedido(*)")
+        .order("created_at", { ascending: false }).limit(50);
+      $("lista").innerHTML = (data || []).map(p => `
+        <article class="card ${p.status}">
+          <h3>Pedido #${p.id} — ${brl(p.total)}</h3>
+          <small>${new Date(p.created_at).toLocaleString("pt-BR")}</small>
+          <ul>${p.itens_pedido.map(i => `<li>${i.quantidade}× ${esc(i.nome)}</li>`).join("")}</ul>
+          <p>📍 ${esc(p.endereco)}<br>📞 ${esc(p.telefone)}<br>
+             💳 ${esc(p.pagamento)}<br>📝 ${esc(p.observacao)}</p>
+          <select data-status="${p.id}">
+            ${Object.keys(ROTULO).map(s =>
+              `<option value="${s}" ${s === p.status ? "selected" : ""}>${ROTULO[s]}</option>`).join("")}
+          </select>
+          <button class="sec" onclick="window.print()">Imprimir</button>
+        </article>`).join("") || "<p>Nenhum pedido ainda.</p>";
+    }
+
+    document.addEventListener("change", async e => {
+      const id = e.target.dataset.status;
+      if (!id) return;
+      const { error } = await supabase.from("pedidos")
+        .update({ status: e.target.value }).eq("id", id);
+      if (error) alert(error.message); else carregarPedidos();
+    });
+
+    // --- alerta de novo pedido (som + notificação) ---
+    let audio;
+    $("ativar").onclick = () => {
+      audio = new AudioContext();
+      Notification.requestPermission();
+      $("ativar").textContent = "🔔 Alertas ativos";
+    };
+    function alertar() {
+      if (audio) {
+        const o = audio.createOscillator();
+        o.frequency.value = 880; o.connect(audio.destination);
+        o.start(); o.stop(audio.currentTime + 0.6);
+      }
+      if (window.Notification && Notification.permission === "granted")
+        new Notification("🛎️ Novo pedido!");
+    }
+
+    await carregarPedidos();
+    supabase.channel("painel-pedidos")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "pedidos" },
+        () => { alertar(); carregarPedidos(); })
+      .subscribe();
+
+    // --- produtos ---
+    async function carregarProdutos() {
+      const { data } = await supabase.from("produtos").select("*").order("nome");
+      $("prods").innerHTML = (data || []).map(p => `
+        <div style="margin-bottom:10px">
+          <b>${esc(p.nome)}</b> — ${brl(p.preco)} ${p.ativo ? "" : "(inativo)"}
+          <button class="sec" data-toggle="${p.id}" data-ativo="${p.ativo}">
+            ${p.ativo ? "Desativar" : "Ativar"}</button>
+          <button data-del="${p.id}">Excluir</button>
+        </div>`).join("");
+    }
+
+    $("salvarProduto").onclick = async () => {
+      let imagem_url = null;
+      const f = $("foto").files[0];
+      if (f) {
+        const nomeArq = `${Date.now()}-${f.name.replace(/[^\w.-]/g, "_")}`;
+        const up = await supabase.storage.from("produtos").upload(nomeArq, f);
+        if (up.error) return alert(up.error.message);
+        imagem_url = supabase.storage.from("produtos").getPublicUrl(nomeArq).data.publicUrl;
+      }
+      const preco = parseFloat($("ppreco").value.replace(",", "."));
+      if (!$("pnome").value.trim() || isNaN(preco)) return alert("Informe nome e preço válidos.");
+      const { error } = await supabase.from("produtos")
+        .insert({ nome: $("pnome").value, descricao: $("pdesc").value, preco, imagem_url });
+      if (error) return alert(error.message);
+      ["pnome", "pdesc", "ppreco", "foto"].forEach(i => ($(i).value = ""));
+      carregarProdutos();
+    };
+
+    document.addEventListener("click", async e => {
+      const d = e.target.dataset;
+      if (d.toggle) {
+        await supabase.from("produtos").update({ ativo: d.ativo !== "true" }).eq("id", d.toggle);
+        carregarProdutos();
+      }
+      if (d.del && confirm("Excluir este produto?")) {
+        await supabase.from("produtos").delete().eq("id", d.del);
+        carregarProdutos();
+      }
+    });
+    carregarProdutos();
+  </script>
+</body>
+</html>
