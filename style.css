@@ -1,24 +1,124 @@
+:root {
+  --preto: #0d0d0d;
+  --cinza: #1a1a1a;
+  --cinza2: #262626;
+  --borda: #333;
+  --texto: #f4f4f4;
+  --suave: #b5b5b5;
+  --vermelho: #e10600;
+  --vermelho2: #ff2a1f;
+  --amarelo: #ffc400;
+}
 * { box-sizing: border-box }
-body { font-family: system-ui, sans-serif; margin: 0; background: #f6f6f6; color: #222 }
+body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0;
+  background: var(--preto); color: var(--texto) }
+a { color: var(--amarelo) }
+h1, h2, h3 { margin-top: 0 }
+small { color: var(--suave) }
+
+/* ---------- topo ---------- */
 header { display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 20px; background: #fff; box-shadow: 0 1px 4px #0002 }
-header h1 { margin: 0; font-size: 1.3rem }
-header nav a { margin-left: 14px }
+  padding: 12px 20px; background: #000; border-bottom: 3px solid var(--vermelho) }
+header h1 { margin: 0; font-size: 1.15rem; color: var(--amarelo);
+  text-transform: uppercase; letter-spacing: .6px }
+header nav a { margin-left: 14px; color: var(--texto); text-decoration: none; font-weight: 600 }
+header nav a:hover { color: var(--amarelo) }
+
+/* dois espaços para as imagens das distribuidoras */
+.marcas { max-width: 1100px; margin: 18px auto 0; padding: 0 16px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
+.marca { height: 130px; border-radius: 14px; overflow: hidden;
+  background: linear-gradient(135deg, #1e1e1e, #090909);
+  border: 2px solid var(--vermelho); box-shadow: 0 0 18px #e1060033;
+  display: flex; align-items: center; justify-content: center }
+.marca:nth-child(2) { border-color: var(--amarelo); box-shadow: 0 0 18px #ffc40033 }
+.marca img { width: 100%; height: 100%; object-fit: contain; padding: 10px }
+.marca span { font-weight: 900; text-transform: uppercase; color: var(--amarelo);
+  font-size: clamp(1rem, 3.6vw, 1.9rem); text-align: center; padding: 8px; letter-spacing: 1px }
+
+/* ---------- layout ---------- */
 main { max-width: 1100px; margin: 20px auto; padding: 0 16px;
   display: grid; grid-template-columns: 2fr 1fr; gap: 20px }
 main.um { display: block }
+main > aside.card { position: sticky; top: 12px; align-self: start }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px }
-.card { background: #fff; border-radius: 10px; padding: 12px; box-shadow: 0 1px 4px #0001; margin-bottom: 12px }
-.card img { width: 100%; height: 140px; object-fit: cover; border-radius: 8px }
+
+/* ---------- cartões ---------- */
+.card { background: var(--cinza); border: 1px solid var(--borda); border-radius: 12px;
+  padding: 12px; margin-bottom: 12px }
+.grid .card { margin-bottom: 0; transition: border-color .15s, transform .15s }
+.grid .card:hover { border-color: var(--amarelo); transform: translateY(-2px) }
+.card img { width: 100%; height: 160px; object-fit: contain; background: #fff; border-radius: 8px }
+.card h3 { font-size: 1rem; margin: 10px 0 4px }
+.card p { color: var(--suave); margin: 4px 0 }
+.valor { display: block; color: var(--amarelo); font-size: 1.2rem; margin: 6px 0 }
+#total { color: var(--amarelo); font-size: 1.3rem }
+.box { max-width: 380px; margin: 60px auto; background: var(--cinza);
+  border: 1px solid var(--borda); border-top: 4px solid var(--vermelho);
+  padding: 20px; border-radius: 12px }
+.box h1 { color: var(--amarelo) }
+
+/* ---------- campos e botões ---------- */
 input, textarea, select, button { width: 100%; padding: 10px; margin: 4px 0;
-  font: inherit; border-radius: 8px; border: 1px solid #ccc }
-button { background: #e63946; color: #fff; border: 0; cursor: pointer }
-button.sec { background: #555 }
-.box { max-width: 380px; margin: 60px auto; background: #fff; padding: 20px; border-radius: 12px }
-.novo { border-left: 6px solid #e63946 }
-.preparando { border-left: 6px solid #f4a261 }
-.saiu_entrega { border-left: 6px solid #457b9d }
-.entregue { border-left: 6px solid #2a9d8f }
+  font: inherit; border-radius: 8px; border: 1px solid var(--borda) }
+input, textarea, select { background: #111; color: var(--texto) }
+input::placeholder, textarea::placeholder { color: #777 }
+input:focus, textarea:focus, select:focus { outline: 2px solid var(--amarelo); outline-offset: 0 }
+option { background: #111; color: #fff }
+button { background: var(--vermelho); color: #fff; border: 0; cursor: pointer; font-weight: 700 }
+button:hover { background: var(--vermelho2) }
+button.sec { background: #333; color: #fff }
+button.sec:hover { background: #444 }
+
+/* ---------- status dos pedidos ---------- */
+.novo { border-left: 6px solid var(--vermelho) }
+.preparando { border-left: 6px solid var(--amarelo) }
+.saiu_entrega { border-left: 6px solid #4aa3ff }
+.entregue { border-left: 6px solid #2ecc71 }
 .cancelado { opacity: .5 }
-@media (max-width: 800px) { main { grid-template-columns: 1fr } }
-@media print { header, select, button, nav { display: none } }
+
+/* ---------- categorias e busca da loja ---------- */
+h2.cat { margin: 26px 0 10px; font-size: 1.15rem; text-transform: uppercase;
+  letter-spacing: .5px; padding-left: 10px; border-left: 5px solid var(--vermelho);
+  scroll-margin-top: 20px }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 }
+.chips a { background: #111; padding: 6px 14px; border-radius: 20px; text-decoration: none;
+  color: var(--amarelo); border: 1px solid var(--amarelo); font-size: .9rem; font-weight: 600 }
+.chips a:hover { background: var(--amarelo); color: #000 }
+
+/* ---------- painel: catálogo ---------- */
+.tabela { overflow-x: auto }
+table { width: 100%; border-collapse: collapse }
+td, th { padding: 6px 10px; border-bottom: 1px solid var(--borda); text-align: left }
+th { color: var(--amarelo) }
+tr.cat td { background: var(--cinza2); font-weight: bold; color: var(--amarelo) }
+td input { margin: 0 }
+td input.preco { max-width: 110px }
+td input[type=checkbox] { width: auto }
+td button { width: auto; padding: 6px 10px; margin: 0 }
+
+.fotobtn { display: inline-block; cursor: pointer; vertical-align: middle }
+.fotobtn img { width: 48px; height: 48px; object-fit: contain; background: #fff;
+  border: 1px solid var(--borda); border-radius: 6px; display: block }
+.semfoto { width: 48px; height: 48px; border: 2px dashed #666; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; font-size: 1.3rem }
+
+/* painel: imagens do topo */
+.prevmarca { height: 80px; margin: 6px 0; border: 1px dashed #666; border-radius: 8px;
+  background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden }
+.prevmarca img { width: 100%; height: 100%; object-fit: contain; background: none; border-radius: 0 }
+
+@media (max-width: 800px) {
+  main { grid-template-columns: 1fr }
+  main > aside.card { position: static }
+  .marca { height: 90px }
+  header h1 { font-size: 1rem }
+}
+
+/* impressão: fundo branco para economizar tinta */
+@media print {
+  body { background: #fff; color: #000 }
+  .card { background: #fff; color: #000; border: 1px solid #999 }
+  .card p, small { color: #333 }
+  header, .marcas, select, button, nav { display: none }
+}

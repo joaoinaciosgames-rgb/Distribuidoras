@@ -23,13 +23,20 @@
     async function carregar() {
       const { data } = await supabase.from("pedidos")
         .select("*, itens_pedido(*)").order("created_at", { ascending: false });
-      $("lista").innerHTML = (data || []).map(p => `
+      $("lista").innerHTML = (data || []).map(p => {
+        const taxa = Number(p.taxa_entrega || 0);
+        return `
         <article class="card ${p.status}">
           <h3>Pedido #${p.id} — ${esc(ROTULO[p.status])}</h3>
           <small>${new Date(p.created_at).toLocaleString("pt-BR")}</small>
           <ul>${p.itens_pedido.map(i => `<li>${i.quantidade}× ${esc(i.nome)}</li>`).join("")}</ul>
-          <b>Total: ${brl(p.total)}</b> — ${esc(p.pagamento)}
-        </article>`).join("") || "<p>Você ainda não fez pedidos.</p>";
+          <p>
+            Produtos: ${brl(Number(p.total) - taxa)}<br>
+            Entrega${p.bairro ? " (" + esc(p.bairro) + ")" : ""}: ${taxa > 0 ? brl(taxa) : "grátis"}<br>
+            <b>Total: ${brl(p.total)}</b> — ${esc(p.pagamento)}
+          </p>
+        </article>`;
+      }).join("") || "<p>Você ainda não fez pedidos.</p>";
     }
     await carregar();
 
