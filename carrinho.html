@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Seu pedido</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+  <header>
+    <h1>🛒 Seu pedido</h1>
+    <nav><a href="index.html">← Continuar comprando</a></nav>
+  </header>
+
+  <main class="um" style="max-width:760px">
+    <p id="aviso"></p>
+
+    <div id="vazio" class="card" hidden>
+      Seu pedido está vazio. <a href="index.html">Ver as bebidas</a>
+    </div>
+
+    <div id="conteudo" hidden>
+      <section class="card">
+        <h2>Itens</h2>
+        <div id="itens"></div>
+      </section>
+
+      <section class="card">
+        <h2>Entrega</h2>
+        <select id="bairro"></select>
+        <textarea id="endereco" placeholder="Endereço de entrega (rua, número, referência)"></textarea>
+        <input id="telefone" placeholder="Telefone / WhatsApp">
+        <input id="obs" maxlength="300" placeholder="Observação geral do pedido (ex.: troco para 100)">
+        <select id="pagamento">
+          <option>Pix na entrega</option>
+          <option>Dinheiro</option>
+          <option>Cartão na entrega</option>
+        </select>
+      </section>
+
+      <section class="card">
+        <p>
+          Produtos: <span id="subtotal">R$ 0,00</span><br>
+          Entrega: <span id="taxa">escolha o bairro</span><br>
+          Total: <b id="total">R$ 0,00</b>
+        </p>
+        <button id="finalizar">Finalizar pedido</button>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase, brl, esc } from "./config.js";
+    const $ = id => document.getElementById(id);
+
+    // --- carrinho: { idDoProduto: { q: quantidade, obs: "observação do item" } } ---
+    function lerCarrinho() {
+      let c = {};
+      try { c = JSON.parse(localStorage.getItem("carrinho") || "{}"); } catch { c = {}; }
+      for (const id of Object.keys(c)) {
+        if (typeof c[id] === "number") c[id] = { q: c[id], obs: "" };   // formato antigo
+        if (!c[id] || !(c[id].q > 0)) delete c[id];
+      }
+      return c;
+    }
+    let carrinho = lerCarrinho();
+    const salvar = () => localStorage.setItem("carrinho", JSON.stringify(carrinho));
+
+    // --- sessão e dados salvos do cliente ---
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: perfil } = await supabase.from("profiles")
+        .select("endereco, telefone").eq("id", session.user.id).single();
+      $("endereco").value = perfil?.endereco ?? "";
+      $("telefone").value = perfil?.telefone ?? "";
+    }
+
+    // --- produtos do pedido (preço e disponibilidade atuais) ---
+    const ids = Object.keys(carrinho).map(Number);
+    let produtos = [];
+    if (ids.length) {
+      const { data } = await supabase.from("produtos").select("*")
+        .in("id", ids).eq("ativo", true);
+      produtos = data || [];
+    }
+    let removidos = 0;
+    for (const id of Object.keys(carrinho)) {
+      if (!produtos.find(p => p.id == id)) { delete carrinho[id]; removidos++; }
+    }
+    if (removidos) {
+      salvar();
+      $("aviso").textContent = "Alguns itens não estão mais disponíveis e foram retirados do pedido.";
+    }
+
+    // --- bairros e taxas ---
+    const { data: bs } = await supabase.from("bairros").select("*")
+      .eq("ativo", true).order("nome");
+    const bairros = bs || [];
+    $("bairro").innerHTML =
+      '<option value="">Escolha seu bairro</option>' +
+      bairros.map(b => `<option value="${b.id}">${esc(b.nome)} — ${
+        Number(b.taxa) === 0 ? "entrega grátis" : brl(b.taxa)}</option>`).join("");
+    const bairroSalvo = localStorage.getItem("bairro");
+    if (bairroSalvo && bairros.some(b => b.id == bairroSalvo)) $("bairro").value = bairroSalvo;
+    $("bairro").onchange = () => { localStorage.setItem("bairro", $("bairro").value); resumo(); };
+
+    // --- desenho da tela ---
+    function resumo() {
+      let subtotal = 0;
+      for (const [id, l] of Object.entries(carrinho)) {
+        const p = produtos.find(x => x.id == id);
+        if (p) subtotal += Number(p.preco) * l.q;
+      }
+      const b = bairros.find(x => x.id == $("bairro").value);
+      const taxa = b ? Number(b.taxa) : 0;
+      $("subtotal").textContent = brl(subtotal);
+      $("taxa").textContent = b ? (taxa > 0 ? brl(taxa) : "Grátis") : "escolha o bairro";
+      $("total").textContent = brl(subtotal + taxa);
+    }
+
+    function desenhar() {
+      const linhas = Object.entries(carrinho);
+      $("vazio").hidden = linhas.length > 0;
+      $("conteudo").hidden = linhas.length === 0;
+      $("itens").innerHTML = linhas.map(([id, l]) => {
+        const p = produtos.find(x => x.id == id);
+        return `
+          <div class="linha">
+            <div class="linha-topo">
+              <div><b>${esc(p.nome)}</b><br><small>${brl(p.preco)} cada</small></div>
+              <div class="stepper">
+                <button data-menos="${id}">−</button><span>${l.q}</span><button data-mais="${id}">+</button>
+              </div>
+              <b class="valor-linha">${brl(Number(p.preco) * l.q)}</b>
+            </div>
+            <input data-obs="${id}" maxlength="200" value="${esc(l.obs)}"
+              placeholder="Observação deste item (ex.: sabor, bem gelada)">
+            ${p.descricao ? `<small>${esc(p.descricao)}</small>` : ""}
+          </div>`;
+      }).join("");
+      resumo();
+    }
+
+    // observação de cada item: salva enquanto digita
+    document.addEventListener("input", e => {
+      const id = e.target.dataset.obs;
+      if (id && carrinho[id]) { carrinho[id].obs = e.target.value; salvar(); }
+    });
+
+    document.addEventListener("click", e => {
+      const d = e.target.dataset;
+      const id = d.mais || d.menos;
+      if (!id || !carrinho[id]) return;
+      carrinho[id].q += d.mais ? 1 : -1;
+      if (carrinho[id].q <= 0) delete carrinho[id];
+      salvar();
+      desenhar();
+    });
+
+    desenhar();
+
+    // --- finalizar ---
+    $("finalizar").onclick = async () => {
+      if (!session) return (location.href = "login.html?volta=carrinho.html");
+      const itens = Object.entries(carrinho).map(([id, l]) => ({
+        produto_id: Number(id), quantidade: l.q, observacao: (l.obs || "").trim(),
+      }));
+      if (!itens.length) return alert("Seu pedido está vazio.");
+      if (!bairros.length) return alert("As entregas ainda não foram configuradas. Tente mais tarde.");
+      if (!$("bairro").value) return alert("Escolha o seu bairro.");
+      if (!$("endereco").value.trim() || !$("telefone").value.trim())
+        return alert("Informe o endereço e o telefone.");
+
+      $("finalizar").disabled = true;
+      const { data: id, error } = await supabase.rpc("criar_pedido", {
+        p_itens: itens,
+        p_bairro_id: Number($("bairro").value),
+        p_endereco: $("endereco").value,
+        p_telefone: $("telefone").value,
+        p_observacao: $("obs").value,
+        p_pagamento: $("pagamento").value,
+      });
+      if (error) { $("finalizar").disabled = false; return alert(error.message); }
+
+      await supabase.from("profiles")
+        .update({ endereco: $("endereco").value, telefone: $("telefone").value })
+        .eq("id", session.user.id);
+
+      carrinho = {}; salvar();
+      location.href = "pedidos.html?novo=" + id;
+    };
+  </script>
+</body>
+</html>
