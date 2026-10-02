@@ -3,47 +3,45 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Meus pedidos</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Entrar</title>
+  <meta name="theme-color" content="#000000">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
-  <header><h1>Meus pedidos</h1><nav><a href="index.html">← Loja</a></nav></header>
-  <main class="um"><p id="aviso"></p><div id="lista"></div></main>
+  <main class="box" style="display:block">
+    <h1>Entrar ou criar conta</h1>
+    <input id="nome" placeholder="Seu nome (só para criar conta)">
+    <input id="email" type="email" placeholder="E-mail">
+    <input id="senha" type="password" placeholder="Senha (mínimo 6 caracteres)">
+    <button id="entrar">Entrar</button>
+    <button id="cadastrar" class="sec">Criar conta</button>
+    <p id="msg"></p>
+    <a href="index.html">← Voltar à loja</a>
+  </main>
 
   <script type="module">
-    import { supabase, brl, esc, ROTULO } from "./config.js";
+    import { supabase } from "./config.js";
     const $ = id => document.getElementById(id);
+    const msg = t => ($("msg").textContent = t);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { location.href = "login.html?volta=pedidos.html"; throw new Error("sem sessão"); }
+    const paginas = ["index.html", "carrinho.html", "pedidos.html", "admin.html"];
+    const pedida = new URLSearchParams(location.search).get("volta");
+    const volta = paginas.includes(pedida) ? pedida : "index.html";
 
-    if (new URLSearchParams(location.search).get("novo"))
-      $("aviso").textContent = "✅ Pedido enviado! Acompanhe o status aqui.";
+    $("entrar").onclick = async () => {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: $("email").value, password: $("senha").value });
+      error ? msg(error.message) : (location.href = volta);
+    };
 
-    async function carregar() {
-      const { data } = await supabase.from("pedidos")
-        .select("*, itens_pedido(*)").order("created_at", { ascending: false });
-      $("lista").innerHTML = (data || []).map(p => {
-        const taxa = Number(p.taxa_entrega || 0);
-        return `
-        <article class="card ${p.status}">
-          <h3>Pedido #${p.id} — ${esc(ROTULO[p.status])}</h3>
-          <small>${new Date(p.created_at).toLocaleString("pt-BR")}</small>
-          <ul>${p.itens_pedido.map(i => `<li>${i.quantidade}× ${esc(i.nome)}</li>`).join("")}</ul>
-          <p>
-            Produtos: ${brl(Number(p.total) - taxa)}<br>
-            Entrega${p.bairro ? " (" + esc(p.bairro) + ")" : ""}: ${taxa > 0 ? brl(taxa) : "grátis"}<br>
-            <b>Total: ${brl(p.total)}</b> — ${esc(p.pagamento)}
-          </p>
-        </article>`;
-      }).join("") || "<p>Você ainda não fez pedidos.</p>";
-    }
-    await carregar();
-
-    // atualiza sozinho quando o fornecedor muda o status
-    supabase.channel("meus-pedidos")
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "pedidos" }, carregar)
-      .subscribe();
+    $("cadastrar").onclick = async () => {
+      const { data, error } = await supabase.auth.signUp({
+        email: $("email").value, password: $("senha").value,
+        options: { data: { nome: $("nome").value } } });
+      if (error) return msg(error.message);
+      if (data.session) location.href = volta;
+      else msg("Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre.");
+    };
   </script>
 </body>
 </html>
