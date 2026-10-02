@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Entrar</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#000000">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <main class="box" style="display:block">
@@ -23,7 +24,7 @@
     const $ = id => document.getElementById(id);
     const msg = t => ($("msg").textContent = t);
 
-    const paginas = ["index.html", "pedidos.html", "admin.html"];
+    const paginas = ["index.html", "carrinho.html", "pedidos.html", "admin.html"];
     const pedida = new URLSearchParams(location.search).get("volta");
     const volta = paginas.includes(pedida) ? pedida : "index.html";
 
