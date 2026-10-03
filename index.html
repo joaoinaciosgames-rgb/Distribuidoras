@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Bebidas em casa</title>
   <meta name="theme-color" content="#000000">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <header>
@@ -52,12 +52,12 @@
     const { data: { session } } = await supabase.auth.getSession();
     let perfil = null;
     if (session) {
-      ({ data: perfil } = await supabase.from("profiles").select("is_admin")
+      ({ data: perfil } = await supabase.from("profiles").select("cargo")
         .eq("id", session.user.id).single());
     }
     $("nav").innerHTML =
       '<a href="carrinho.html" id="navCarrinho">🛒 Seu pedido</a>' +
-      (perfil?.is_admin ? '<a href="admin.html">Painel</a>' : "") +
+      (["admin", "vendedor", "entregador"].includes(perfil?.cargo) ? '<a href="admin.html">Painel</a>' : "") +
       (session
         ? '<a href="pedidos.html">Meus pedidos</a><a href="#" id="sair">Sair</a>'
         : '<a href="login.html">Entrar</a>');

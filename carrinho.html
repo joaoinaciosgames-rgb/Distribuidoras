@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Seu pedido</title>
   <meta name="theme-color" content="#000000">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <header>
@@ -28,9 +28,10 @@
 
       <section class="card">
         <h2>Entrega</h2>
-        <select id="bairro"></select>
-        <textarea id="endereco" placeholder="Endereço de entrega (rua, número, referência)"></textarea>
-        <input id="telefone" placeholder="Telefone / WhatsApp">
+        <p><small id="info"></small></p>
+        <input id="bairro" placeholder="Bairro *" autocomplete="address-level3">
+        <textarea id="endereco" placeholder="Endereço (rua, número e ponto de referência) *"></textarea>
+        <input id="telefone" type="tel" placeholder="Telefone / WhatsApp *">
         <input id="obs" maxlength="300" placeholder="Observação geral do pedido (ex.: troco para 100)">
         <select id="pagamento">
           <option>Pix na entrega</option>
@@ -40,11 +41,22 @@
       </section>
 
       <section class="card">
+        <h2>Cupom de desconto</h2>
+        <div class="form-linha">
+          <input id="cupom" placeholder="Digite o código do cupom" autocapitalize="characters">
+          <button id="aplicarCupom" class="sec">Aplicar</button>
+        </div>
+        <small id="msgCupom"></small>
+      </section>
+
+      <section class="card">
         <p>
           Produtos: <span id="subtotal">R$ 0,00</span><br>
-          Entrega: <span id="taxa">escolha o bairro</span><br>
+          <span id="linhaDesconto" hidden>Desconto: <span id="desconto"></span><br></span>
+          Entrega: <span id="taxa"></span><br>
           Total: <b id="total">R$ 0,00</b>
         </p>
+        <p id="minimo" style="color:var(--amarelo)"></p>
         <button id="finalizar">Finalizar pedido</button>
       </section>
     </div>
@@ -52,6 +64,7 @@
 
   <script type="module">
     import { supabase, brl, esc } from "./config.js";
+    import { traduzirErro } from "./textos.js";
     const $ = id => document.getElementById(id);
 
     // --- carrinho: { idDoProduto: { q: quantidade, obs: "observação do item" } } ---
@@ -67,13 +80,29 @@
     let carrinho = lerCarrinho();
     const salvar = () => localStorage.setItem("carrinho", JSON.stringify(carrinho));
 
+    // --- taxa de entrega e pedido mínimo (definidos no painel) ---
+    const num = (v, padrao) => {
+      const n = parseFloat(String(v ?? "").replace(",", "."));
+      return isNaN(n) ? padrao : n;
+    };
+    const { data: cfg } = await supabase.from("configuracoes").select("*")
+      .in("chave", ["taxa_entrega", "pedido_minimo"]);
+    const conf = Object.fromEntries((cfg || []).map(r => [r.chave, r.valor]));
+    const TAXA = num(conf.taxa_entrega, 3);
+    const MINIMO = num(conf.pedido_minimo, 20);
+    $("taxa").textContent = TAXA > 0 ? brl(TAXA) : "Grátis";
+    $("info").textContent =
+      `Entrega ${TAXA > 0 ? "de " + brl(TAXA) : "grátis"} para qualquer bairro da cidade. ` +
+      `Pedido mínimo: ${brl(MINIMO)} em produtos.`;
+
     // --- sessão e dados salvos do cliente ---
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       const { data: perfil } = await supabase.from("profiles")
-        .select("endereco, telefone").eq("id", session.user.id).single();
+        .select("endereco, telefone, bairro").eq("id", session.user.id).single();
       $("endereco").value = perfil?.endereco ?? "";
       $("telefone").value = perfil?.telefone ?? "";
+      $("bairro").value = perfil?.bairro ?? "";
     }
 
     // --- produtos do pedido (preço e disponibilidade atuais) ---
@@ -93,30 +122,51 @@
       $("aviso").textContent = "Alguns itens não estão mais disponíveis e foram retirados do pedido.";
     }
 
-    // --- bairros e taxas ---
-    const { data: bs } = await supabase.from("bairros").select("*")
-      .eq("ativo", true).order("nome");
-    const bairros = bs || [];
-    $("bairro").innerHTML =
-      '<option value="">Escolha seu bairro</option>' +
-      bairros.map(b => `<option value="${b.id}">${esc(b.nome)} — ${
-        Number(b.taxa) === 0 ? "entrega grátis" : brl(b.taxa)}</option>`).join("");
-    const bairroSalvo = localStorage.getItem("bairro");
-    if (bairroSalvo && bairros.some(b => b.id == bairroSalvo)) $("bairro").value = bairroSalvo;
-    $("bairro").onchange = () => { localStorage.setItem("bairro", $("bairro").value); resumo(); };
+    // --- cupom ---
+    let cupom = null;   // { codigo, desconto }
 
-    // --- desenho da tela ---
-    function resumo() {
-      let subtotal = 0;
+    function subtotalAtual() {
+      let s = 0;
       for (const [id, l] of Object.entries(carrinho)) {
         const p = produtos.find(x => x.id == id);
-        if (p) subtotal += Number(p.preco) * l.q;
+        if (p) s += Number(p.preco) * l.q;
       }
-      const b = bairros.find(x => x.id == $("bairro").value);
-      const taxa = b ? Number(b.taxa) : 0;
-      $("subtotal").textContent = brl(subtotal);
-      $("taxa").textContent = b ? (taxa > 0 ? brl(taxa) : "Grátis") : "escolha o bairro";
-      $("total").textContent = brl(subtotal + taxa);
+      return s;
+    }
+
+    async function aplicarCupom(silencioso = false) {
+      const codigo = $("cupom").value.trim().toUpperCase();
+      if (!codigo) { cupom = null; $("msgCupom").textContent = ""; return resumo(); }
+      if (!session) {
+        if (!silencioso) $("msgCupom").textContent = "Entre na sua conta para usar um cupom.";
+        return;
+      }
+      const { data, error } = await supabase.rpc("validar_cupom",
+        { p_codigo: codigo, p_subtotal: subtotalAtual() });
+      if (error) {
+        cupom = null;
+        $("msgCupom").textContent = traduzirErro(error);
+      } else {
+        cupom = { codigo, desconto: Number(data) };
+        $("msgCupom").textContent = `Cupom ${codigo} aplicado!`;
+      }
+      resumo();
+    }
+    $("aplicarCupom").onclick = () => aplicarCupom(false);
+
+    // --- resumo e valor mínimo ---
+    function resumo() {
+      const sub = subtotalAtual();
+      const desc = cupom ? Math.min(cupom.desconto, sub) : 0;
+      $("subtotal").textContent = brl(sub);
+      $("linhaDesconto").hidden = desc <= 0;
+      $("desconto").textContent = "− " + brl(desc);
+      $("total").textContent = brl(sub - desc + TAXA);
+
+      const falta = MINIMO - sub;
+      $("minimo").textContent = falta > 0.0001
+        ? `Pedido mínimo de ${brl(MINIMO)} em produtos. Faltam ${brl(falta)}.` : "";
+      $("finalizar").disabled = falta > 0.0001;
     }
 
     function desenhar() {
@@ -156,6 +206,7 @@
       if (carrinho[id].q <= 0) delete carrinho[id];
       salvar();
       desenhar();
+      if (cupom) aplicarCupom(true);   // recalcula o desconto com o novo total
     });
 
     desenhar();
@@ -167,25 +218,27 @@
         produto_id: Number(id), quantidade: l.q, observacao: (l.obs || "").trim(),
       }));
       if (!itens.length) return alert("Seu pedido está vazio.");
-      if (!bairros.length) return alert("As entregas ainda não foram configuradas. Tente mais tarde.");
-      if (!$("bairro").value) return alert("Escolha o seu bairro.");
-      if (!$("endereco").value.trim() || !$("telefone").value.trim())
-        return alert("Informe o endereço e o telefone.");
+      if (!$("bairro").value.trim()) return alert("Informe o seu bairro.");
+      if (!$("endereco").value.trim()) return alert("Informe o endereço de entrega.");
+      if (!$("telefone").value.trim()) return alert("Informe o telefone ou WhatsApp.");
 
       $("finalizar").disabled = true;
       const { data: id, error } = await supabase.rpc("criar_pedido", {
         p_itens: itens,
-        p_bairro_id: Number($("bairro").value),
-        p_endereco: $("endereco").value,
-        p_telefone: $("telefone").value,
-        p_observacao: $("obs").value,
+        p_bairro: $("bairro").value.trim(),
+        p_endereco: $("endereco").value.trim(),
+        p_telefone: $("telefone").value.trim(),
+        p_observacao: $("obs").value.trim(),
         p_pagamento: $("pagamento").value,
+        p_cupom: cupom ? cupom.codigo : null,
       });
-      if (error) { $("finalizar").disabled = false; return alert(error.message); }
+      if (error) { resumo(); return alert(traduzirErro(error)); }
 
-      await supabase.from("profiles")
-        .update({ endereco: $("endereco").value, telefone: $("telefone").value })
-        .eq("id", session.user.id);
+      await supabase.from("profiles").update({
+        endereco: $("endereco").value.trim(),
+        telefone: $("telefone").value.trim(),
+        bairro: $("bairro").value.trim(),
+      }).eq("id", session.user.id);
 
       carrinho = {}; salvar();
       location.href = "pedidos.html?novo=" + id;

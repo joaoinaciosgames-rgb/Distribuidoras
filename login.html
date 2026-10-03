@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Entrar</title>
   <meta name="theme-color" content="#000000">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <main class="box" style="display:block">
     <h1>Entrar ou criar conta</h1>
-    <input id="nome" placeholder="Seu nome (só para criar conta)">
-    <input id="email" type="email" placeholder="E-mail">
-    <input id="senha" type="password" placeholder="Senha (mínimo 6 caracteres)">
+    <input id="nome" placeholder="Seu nome (só para criar conta)" autocomplete="name">
+    <input id="email" type="email" placeholder="E-mail" autocomplete="email">
+    <input id="senha" type="password" placeholder="Senha (mínimo 6 caracteres)" autocomplete="current-password">
     <button id="entrar">Entrar</button>
     <button id="cadastrar" class="sec">Criar conta</button>
     <p id="msg"></p>
@@ -21,6 +21,7 @@
 
   <script type="module">
     import { supabase } from "./config.js";
+    import { traduzirErro } from "./textos.js";
     const $ = id => document.getElementById(id);
     const msg = t => ($("msg").textContent = t);
 
@@ -28,20 +29,34 @@
     const pedida = new URLSearchParams(location.search).get("volta");
     const volta = paginas.includes(pedida) ? pedida : "index.html";
 
-    $("entrar").onclick = async () => {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: $("email").value, password: $("senha").value });
-      error ? msg(error.message) : (location.href = volta);
-    };
+    function conferir(precisaNome) {
+      if (!$("email").value.trim()) { msg("Digite o seu e-mail."); return false; }
+      if (!$("senha").value) { msg("Digite a sua senha."); return false; }
+      if (precisaNome && !$("nome").value.trim()) { msg("Digite o seu nome para criar a conta."); return false; }
+      return true;
+    }
 
-    $("cadastrar").onclick = async () => {
+    async function executar(botao, tarefa) {
+      botao.disabled = true;
+      msg("Aguarde...");
+      try { await tarefa(); } finally { botao.disabled = false; }
+    }
+
+    $("entrar").onclick = () => conferir(false) && executar($("entrar"), async () => {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: $("email").value.trim(), password: $("senha").value });
+      if (error) return msg(traduzirErro(error));
+      location.href = volta;
+    });
+
+    $("cadastrar").onclick = () => conferir(true) && executar($("cadastrar"), async () => {
       const { data, error } = await supabase.auth.signUp({
-        email: $("email").value, password: $("senha").value,
-        options: { data: { nome: $("nome").value } } });
-      if (error) return msg(error.message);
+        email: $("email").value.trim(), password: $("senha").value,
+        options: { data: { nome: $("nome").value.trim() } } });
+      if (error) return msg(traduzirErro(error));
       if (data.session) location.href = volta;
       else msg("Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre.");
-    };
+    });
   </script>
 </body>
 </html>

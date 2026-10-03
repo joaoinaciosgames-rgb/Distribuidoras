@@ -4,220 +4,310 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Painel</title>
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
-  <header><h1>Painel do fornecedor</h1><nav><a href="index.html">Ver loja</a></nav></header>
+  <header>
+    <h1>Painel</h1>
+    <nav><span id="quem"></span><a href="index.html">Ver loja</a></nav>
+  </header>
 
-  <main style="grid-template-columns:2fr 1fr">
-    <section>
-      <button id="ativar" class="sec">🔔 Ativar som e notificações</button>
-      <h2>Pedidos</h2>
+  <main class="um">
+    <div id="abas" class="abas"></div>
+
+    <!-- ================= PEDIDOS ================= -->
+    <section id="aba-pedidos" hidden>
+      <div class="barra-filtros">
+        <button id="ativar" class="sec">🔔 Ativar som e notificações</button>
+        <select id="filtro"></select>
+        <button id="apagarExibidos" class="sec" hidden>🗑 Apagar todos os pedidos exibidos</button>
+      </div>
       <div id="lista"></div>
     </section>
 
-    <aside>
+    <!-- ================= PRODUTOS ================= -->
+    <section id="aba-produtos" hidden>
+      <div class="card">
+        <h2>Novo produto</h2>
+        <div class="form-linha">
+          <input id="pnome" placeholder="Nome (ex.: Skol Lata 269ml)">
+          <input id="pcat" list="cats" placeholder="Categoria">
+          <datalist id="cats">
+            <option value="Cervejas Lata"><option value="Long Necks"><option value="Cervejas Zero">
+            <option value="Refrigerantes"><option value="Energéticos"><option value="Isotônicos">
+            <option value="Águas"><option value="Sucos"><option value="Outras bebidas">
+          </datalist>
+          <input id="pdesc" placeholder="Descrição (opcional)">
+          <input id="ppreco" placeholder="Preço (ex.: 4,50)">
+        </div>
+        <input id="foto" type="file" accept="image/*">
+        <button id="salvarProduto" style="width:auto">Cadastrar produto</button>
+      </div>
+
+      <div class="card">
+        <h2>Catálogo de produtos</h2>
+        <p>Digite o preço de cada bebida e marque <b>Ativo</b> para ela aparecer na loja.
+           O nome, a descrição e o preço são salvos ao sair do campo. Para colocar uma foto, clique no
+           quadrado 📷 da linha. Para colocar <b>várias de uma vez</b>, use o botão
+           "Enviar várias fotos de uma vez".</p>
+        <button id="ativarTodos" class="sec" style="width:auto">Ativar todos que já têm preço</button>
+        <button id="btnLote" class="sec" style="width:auto">📷 Enviar várias fotos de uma vez</button>
+        <input id="fotosLote" type="file" accept="image/*" multiple hidden>
+        <div id="lote" style="margin-top:12px"></div>
+        <div class="tabela">
+          <table>
+            <thead><tr><th>Foto</th><th>Produto</th><th>Preço (R$)</th><th>Ativo</th><th></th></tr></thead>
+            <tbody id="prods"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= CUPONS ================= -->
+    <section id="aba-cupons" hidden>
+      <div class="card">
+        <h2>Criar cupom de desconto</h2>
+        <p><small>Cada cliente só pode usar o mesmo cupom uma vez. A quantidade é o total de pessoas que podem usá-lo.</small></p>
+        <div class="form-linha">
+          <input id="ccodigo" placeholder="Código (ex.: BEMVINDO10)" autocapitalize="characters">
+          <button id="gerarCodigo" class="sec">Gerar código</button>
+        </div>
+        <div class="form-linha">
+          <select id="ctipo">
+            <option value="valor">Desconto em reais (R$)</option>
+            <option value="percentual">Desconto em porcentagem (%)</option>
+          </select>
+          <input id="cdesconto" inputmode="decimal" placeholder="Valor do desconto (ex.: 5,00 ou 10)">
+          <input id="cqtd" inputmode="numeric" placeholder="Quantidade de usos (ex.: 50)">
+        </div>
+        <button id="criarCupom" style="width:auto">Criar cupom</button>
+      </div>
+      <div class="card">
+        <h2>Cupons criados</h2>
+        <div class="tabela">
+          <table>
+            <thead><tr><th>Código</th><th>Desconto</th><th>Usos</th><th>Ativo</th><th></th></tr></thead>
+            <tbody id="listaCupons"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= USUÁRIOS E CARGOS ================= -->
+    <section id="aba-usuarios" hidden>
+      <div class="card">
+        <h2>Usuários e cargos</h2>
+        <p><small>
+          <b>Administrador:</b> acesso total (produtos, cupons, cargos, configurações e apagar pedidos).<br>
+          <b>Vendedor:</b> vê e atualiza os pedidos e cuida do catálogo (produtos, preços e fotos).<br>
+          <b>Entregador:</b> vê os pedidos em preparo e a caminho, e marca "saiu para entrega" e "entregue".<br>
+          <b>Usuário comum:</b> só faz pedidos na loja.
+        </small></p>
+        <input id="buscaUsuario" type="search" placeholder="🔍 Buscar por nome ou e-mail">
+        <div class="tabela">
+          <table>
+            <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Cargo</th></tr></thead>
+            <tbody id="listaUsuarios"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= CONFIGURAÇÕES ================= -->
+    <section id="aba-config" hidden>
+      <div class="card">
+        <h2>Entrega e pedido mínimo</h2>
+        <div class="form-linha">
+          <div><small>Taxa de entrega (R$), igual para toda a cidade</small>
+            <input id="ctaxa" inputmode="decimal" placeholder="3,00"></div>
+          <div><small>Pedido mínimo em produtos (R$)</small>
+            <input id="cminimo" inputmode="decimal" placeholder="20,00"></div>
+        </div>
+        <button id="salvarEntrega" style="width:auto">Salvar</button>
+      </div>
+
       <div class="card">
         <h2>Imagens do topo da loja</h2>
         <p><small>Logo ou banner de cada distribuidora. PNG com fundo transparente fica melhor no tema preto.</small></p>
-        <b>Casca de Bala</b>
-        <div id="prev1" class="prevmarca"></div>
-        <input type="file" accept="image/*" data-marca="marca1_img">
-        <button class="sec" data-rmmarca="marca1_img">Remover imagem</button>
-        <hr style="border-color:#333;margin:14px 0">
-        <b>Tereza Bicuda</b>
-        <div id="prev2" class="prevmarca"></div>
-        <input type="file" accept="image/*" data-marca="marca2_img">
-        <button class="sec" data-rmmarca="marca2_img">Remover imagem</button>
+        <div class="form-linha">
+          <div>
+            <b>Casca de Bala</b>
+            <div id="prev1" class="prevmarca"></div>
+            <input type="file" accept="image/*" data-marca="marca1_img">
+            <button class="sec" data-rmmarca="marca1_img">Remover imagem</button>
+          </div>
+          <div>
+            <b>Tereza Bicuda</b>
+            <div id="prev2" class="prevmarca"></div>
+            <input type="file" accept="image/*" data-marca="marca2_img">
+            <button class="sec" data-rmmarca="marca2_img">Remover imagem</button>
+          </div>
+        </div>
       </div>
-
-      <div class="card">
-        <h2>Bairros e taxa de entrega</h2>
-        <input id="bnome" placeholder="Nome do bairro">
-        <input id="btaxa" placeholder="Taxa (ex.: 5,00 — use 0 para grátis)">
-        <button id="salvarBairro">Cadastrar bairro</button>
-        <div id="bairros" style="margin-top:10px"></div>
-      </div>
-
-      <div class="card">
-        <h2>Novo produto</h2>
-        <input id="pnome" placeholder="Nome (ex.: Skol Lata 350ml)">
-        <input id="pcat" list="cats" placeholder="Categoria">
-        <datalist id="cats">
-          <option value="Cervejas Lata"><option value="Long Necks"><option value="Cervejas Zero">
-          <option value="Refrigerantes"><option value="Energéticos"><option value="Isotônicos">
-          <option value="Águas"><option value="Sucos"><option value="Outras bebidas">
-        </datalist>
-        <input id="pdesc" placeholder="Descrição (opcional)">
-        <input id="ppreco" placeholder="Preço (ex.: 4,50)">
-        <input id="foto" type="file" accept="image/*">
-        <button id="salvarProduto">Cadastrar produto</button>
-      </div>
-    </aside>
-  </main>
-
-  <main class="um">
-    <div class="card">
-      <h2>Catálogo de produtos</h2>
-      <p>Digite o preço de cada bebida e marque <b>Ativo</b> para ela aparecer na loja.
-         O nome, a descrição e o preço são salvos ao sair do campo. Para colocar uma foto, clique no quadrado 📷 da linha. Para colocar
-         <b>várias de uma vez</b>, use o botão "Enviar várias fotos de uma vez". As imagens são
-         reduzidas automaticamente antes de enviar.</p>
-      <button id="ativarTodos" class="sec" style="width:auto">Ativar todos que já têm preço</button>
-      <button id="btnLote" class="sec" style="width:auto">📷 Enviar várias fotos de uma vez</button>
-      <input id="fotosLote" type="file" accept="image/*" multiple hidden>
-      <div id="lote" style="margin-top:12px"></div>
-      <div class="tabela">
-        <table>
-          <thead><tr><th>Foto</th><th>Produto</th><th>Preço (R$)</th><th>Ativo</th><th></th></tr></thead>
-          <tbody id="prods"></tbody>
-        </table>
-      </div>
-    </div>
+    </section>
   </main>
 
   <script type="module">
     import { supabase, brl, esc, ROTULO } from "./config.js";
-    const $ = id => document.getElementById(id);
+    import { traduzirErro } from "./textos.js";
 
+    const $ = id => document.getElementById(id);
+    const erro = e => alert(traduzirErro(e));
+    const fmt = n => Number(n).toFixed(2).replace(".", ",");
+    const num = v => parseFloat(String(v).replace(",", "."));
+
+    const CARGOS = { admin: "Administrador", vendedor: "Vendedor",
+                     entregador: "Entregador", cliente: "Usuário comum" };
     const ORDEM = ["Cervejas Lata", "Long Necks", "Cervejas Zero", "Refrigerantes",
                    "Energéticos", "Isotônicos", "Águas", "Sucos", "Outras bebidas"];
     const pos = c => { const i = ORDEM.indexOf(c); return i < 0 ? 99 : i; };
 
-    // --- só entra quem é admin ---
+    // ---------- quem pode entrar ----------
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { location.href = "login.html?volta=admin.html"; throw new Error("sem sessão"); }
     const { data: perfil } = await supabase.from("profiles")
-      .select("is_admin").eq("id", session.user.id).single();
-    if (!perfil?.is_admin) {
-      document.body.innerHTML = "<p style='padding:30px'>Acesso negado.</p>";
+      .select("cargo").eq("id", session.user.id).single();
+    const cargo = perfil?.cargo;
+    if (!["admin", "vendedor", "entregador"].includes(cargo)) {
+      document.body.innerHTML = "<p style='padding:30px'>Acesso negado. Esta área é só para a equipe da loja.</p>";
       throw new Error("sem acesso");
     }
+    const ehAdmin = cargo === "admin";
+    const ehEquipe = ehAdmin || cargo === "vendedor";       // admin ou vendedor
+    const ehEntregador = cargo === "entregador";
+    $("quem").textContent = CARGOS[cargo];
 
-    // --- pedidos ---
-    async function carregarPedidos() {
-      const { data } = await supabase.from("pedidos")
-        .select("*, itens_pedido(*)")
-        .order("created_at", { ascending: false }).limit(50);
-      $("lista").innerHTML = (data || []).map(p => `
-        <article class="card ${p.status}">
-          <h3>Pedido #${p.id} — ${brl(p.total)}</h3>
-          <small>${new Date(p.created_at).toLocaleString("pt-BR")}</small>
-          <ul>${p.itens_pedido.map(i => `<li>${i.quantidade}× ${esc(i.nome)}${i.observacao ? `<br><small>📝 ${esc(i.observacao)}</small>` : ""}</li>`).join("")}</ul>
-          <p>
-            Produtos: ${brl(Number(p.total) - Number(p.taxa_entrega || 0))}<br>
-            🛵 Entrega${p.bairro ? " (" + esc(p.bairro) + ")" : ""}: ${
-              Number(p.taxa_entrega || 0) > 0 ? brl(p.taxa_entrega) : "grátis"}
-          </p>
-          <p>📍 ${esc(p.endereco)}<br>📞 ${esc(p.telefone)}<br>
-             💳 ${esc(p.pagamento)}<br>📝 ${esc(p.observacao)}</p>
-          <select data-status="${p.id}">
-            ${Object.keys(ROTULO).map(s =>
-              `<option value="${s}" ${s === p.status ? "selected" : ""}>${ROTULO[s]}</option>`).join("")}
-          </select>
-          <button class="sec" onclick="window.print()">Imprimir</button>
-        </article>`).join("") || "<p>Nenhum pedido ainda.</p>";
+    // ---------- abas ----------
+    const ABAS = [
+      ["pedidos", "📦 Pedidos", true],
+      ["produtos", "🍺 Produtos", ehEquipe],
+      ["cupons", "🎟 Cupons", ehAdmin],
+      ["usuarios", "👥 Usuários e cargos", ehAdmin],
+      ["config", "⚙ Configurações", ehAdmin],
+    ].filter(a => a[2]);
+    $("abas").innerHTML = ABAS.map(([id, nome]) => `<button data-aba="${id}">${nome}</button>`).join("");
+
+    function abrirAba(id) {
+      if (!ABAS.some(a => a[0] === id)) id = "pedidos";
+      for (const [a] of ABAS) $("aba-" + a).hidden = a !== id;
+      document.querySelectorAll("#abas button")
+        .forEach(b => b.classList.toggle("ativa", b.dataset.aba === id));
+      localStorage.setItem("abaPainel", id);
+      if (id === "produtos") carregarProdutos();
+      if (id === "cupons") carregarCupons();
+      if (id === "usuarios") carregarUsuarios();
+      if (id === "config") carregarConfig();
     }
 
-    // --- alerta de novo pedido (som + notificação) ---
+    // ---------- pedidos ----------
+    const ESTADOS = Object.keys(ROTULO);
+    const VISIVEIS = ehEntregador ? ["preparando", "saiu_entrega", "entregue"] : ESTADOS;
+    $("filtro").innerHTML = '<option value="todos">Todos os pedidos</option>' +
+      VISIVEIS.map(s => `<option value="${s}">${ROTULO[s]}</option>`).join("");
+    $("filtro").onchange = desenharPedidos;
+
+    let pedidos = [];
+    let exibidos = [];
+
+    async function carregarPedidos() {
+      const { data, error } = await supabase.from("pedidos")
+        .select("*, itens_pedido(*)").order("created_at", { ascending: false }).limit(100);
+      if (error) { $("lista").innerHTML = `<p>${esc(traduzirErro(error))}</p>`; return; }
+      pedidos = data || [];
+      desenharPedidos();
+    }
+
+    function cartaoPedido(p) {
+      const taxa = Number(p.taxa_entrega || 0);
+      const desc = Number(p.desconto || 0);
+      const sub = Number(p.total) - taxa + desc;
+      const itens = p.itens_pedido.map(i =>
+        `<li>${i.quantidade}× ${esc(i.nome)}${i.observacao ? `<br><small>📝 ${esc(i.observacao)}</small>` : ""}</li>`).join("");
+
+      let acoes = "";
+      if (ehEquipe) {
+        acoes += `<select data-status="${p.id}">${ESTADOS.map(s =>
+          `<option value="${s}" ${s === p.status ? "selected" : ""}>${ROTULO[s]}</option>`).join("")}</select>`;
+      } else if (ehEntregador) {
+        if (p.status === "preparando")
+          acoes += `<button data-novo="saiu_entrega" data-id="${p.id}">🛵 Saí para entrega</button>`;
+        if (p.status === "saiu_entrega")
+          acoes += `<button data-novo="entregue" data-id="${p.id}">✅ Marcar como entregue</button>`;
+      }
+      acoes += `<button class="sec" data-imprimir="${p.id}">Imprimir</button>`;
+      if (ehAdmin) acoes += `<button data-apagar="${p.id}">🗑 Apagar pedido</button>`;
+
+      return `
+        <article class="card pedido ${p.status}">
+          <h3>Pedido #${p.id} — ${brl(p.total)} <small>(${esc(ROTULO[p.status])})</small></h3>
+          <small>${new Date(p.created_at).toLocaleString("pt-BR")}</small>
+          ${p.cliente_nome ? `<p>👤 ${esc(p.cliente_nome)}</p>` : ""}
+          <ul>${itens}</ul>
+          <p>
+            Produtos: ${brl(sub)}<br>
+            ${desc > 0 ? `🎟 Cupom ${esc(p.cupom)}: − ${brl(desc)}<br>` : ""}
+            🛵 Entrega: ${taxa > 0 ? brl(taxa) : "grátis"}
+          </p>
+          <p>
+            📍 Bairro: ${esc(p.bairro || "—")}<br>
+            🏠 ${esc(p.endereco)}<br>
+            📞 <a href="tel:${esc(p.telefone)}">${esc(p.telefone)}</a><br>
+            💳 ${esc(p.pagamento)}${p.observacao ? `<br>📝 ${esc(p.observacao)}` : ""}
+          </p>
+          <div class="acoes-pedido">${acoes}</div>
+        </article>`;
+    }
+
+    function desenharPedidos() {
+      const f = $("filtro").value;
+      const lista = pedidos.filter(p => f === "todos" || p.status === f);
+      exibidos = lista.map(p => p.id);
+      $("apagarExibidos").hidden = !(ehAdmin && lista.length && f !== "todos");
+      $("lista").innerHTML = lista.map(cartaoPedido).join("") || "<p>Nenhum pedido aqui.</p>";
+    }
+
+    async function mudarStatus(id, status) {
+      const { error } = await supabase.rpc("mudar_status", { p_pedido: Number(id), p_status: status });
+      if (error) erro(error);
+      carregarPedidos();
+    }
+
+    async function apagarPedidos(ids) {
+      const { data, error } = await supabase.from("pedidos").delete().in("id", ids).select("id");
+      if (error) return erro(error);
+      if (!data || data.length !== ids.length) alert("Alguns pedidos não puderam ser apagados.");
+      carregarPedidos();
+    }
+
+    // ---------- alerta de novo pedido (som + notificação) ----------
     let audio;
     $("ativar").onclick = () => {
       audio = new AudioContext();
       Notification.requestPermission();
       $("ativar").textContent = "🔔 Alertas ativos";
     };
-    function alertar() {
+    function alertar(texto) {
       if (audio) {
         const o = audio.createOscillator();
         o.frequency.value = 880; o.connect(audio.destination);
         o.start(); o.stop(audio.currentTime + 0.6);
       }
-      if (window.Notification && Notification.permission === "granted")
-        new Notification("🛎️ Novo pedido!");
+      if (window.Notification && Notification.permission === "granted") new Notification(texto);
     }
 
-    await carregarPedidos();
     supabase.channel("painel-pedidos")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "pedidos" },
-        () => { alertar(); carregarPedidos(); })
+        () => { if (ehEquipe) alertar("🛎️ Novo pedido!"); carregarPedidos(); })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "pedidos" },
+        p => { if (ehEntregador && p.new?.status === "preparando") alertar("🛵 Pedido pronto para entregar!"); carregarPedidos(); })
       .subscribe();
 
-    // --- bairros e taxas ---
-    async function carregarBairros() {
-      const { data } = await supabase.from("bairros").select("*").order("nome");
-      $("bairros").innerHTML = (data || []).map(b => `
-        <div style="margin-bottom:10px">
-          <b>${esc(b.nome)}</b> — ${Number(b.taxa) > 0 ? brl(b.taxa) : "grátis"} ${b.ativo ? "" : "(inativo)"}
-          <button class="sec" data-btaxa="${b.id}" data-valor="${b.taxa}">Alterar taxa</button>
-          <button class="sec" data-btoggle="${b.id}" data-ativo="${b.ativo}">
-            ${b.ativo ? "Desativar" : "Ativar"}</button>
-          <button data-bdel="${b.id}">Excluir</button>
-        </div>`).join("") || "<p>Nenhum bairro cadastrado.</p>";
-    }
-
-    $("salvarBairro").onclick = async () => {
-      const nome = $("bnome").value.trim();
-      const taxa = parseFloat($("btaxa").value.replace(",", "."));
-      if (!nome || isNaN(taxa) || taxa < 0) return alert("Informe o nome do bairro e uma taxa válida (0 ou mais).");
-      const { error } = await supabase.from("bairros").insert({ nome, taxa });
-      if (error) return alert(error.code === "23505" ? "Esse bairro já está cadastrado." : error.message);
-      $("bnome").value = ""; $("btaxa").value = "";
-      carregarBairros();
-    };
-
-    // --- fotos: reduz a imagem e envia para o Storage ---
-    async function reduzir(file, max = 700, png = false) {
-      const bmp = await createImageBitmap(file);
-      const fator = Math.min(1, max / Math.max(bmp.width, bmp.height));
-      const c = document.createElement("canvas");
-      c.width = Math.round(bmp.width * fator);
-      c.height = Math.round(bmp.height * fator);
-      const ctx = c.getContext("2d");
-      if (!png) {                             // fotos de produto: fundo branco
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(0, 0, c.width, c.height);
-      }
-      ctx.drawImage(bmp, 0, 0, c.width, c.height);
-      return new Promise(ok => png
-        ? c.toBlob(ok, "image/png")           // logos: mantém a transparência
-        : c.toBlob(ok, "image/jpeg", 0.85));
-    }
-
-    async function enviarFoto(file, max = 700, png = false) {
-      let blob;
-      try { blob = await reduzir(file, max, png); }
-      catch { throw new Error("Não consegui ler essa imagem. Use um arquivo JPG ou PNG."); }
-      const nome = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${png ? "png" : "jpg"}`;
-      const { error } = await supabase.storage.from("produtos")
-        .upload(nome, blob, { contentType: png ? "image/png" : "image/jpeg" });
-      if (error) throw error;
-      return supabase.storage.from("produtos").getPublicUrl(nome).data.publicUrl;
-    }
-
-    async function apagarArquivo(url) {      // tenta apagar a foto antiga (não é crítico)
-      if (!url) return;
-      const i = url.indexOf("/produtos/");
-      if (i < 0) return;
-      await supabase.storage.from("produtos").remove([decodeURIComponent(url.slice(i + 10))]);
-    }
-
-    // --- imagens do topo da loja ---
-    const PREVIA = { marca1_img: "prev1", marca2_img: "prev2" };
-    let configs = {};
-    async function carregarMarcas() {
-      const { data } = await supabase.from("configuracoes").select("*");
-      configs = Object.fromEntries((data || []).map(r => [r.chave, r.valor]));
-      for (const [chave, id] of Object.entries(PREVIA))
-        $(id).innerHTML = configs[chave]
-          ? `<img src="${esc(configs[chave])}" alt="">` : "<small>Sem imagem</small>";
-    }
-
-    // --- catálogo de produtos ---
+    // ---------- produtos ----------
     let produtosPorId = {};
     let produtosLista = [];
-    const fmt = n => Number(n).toFixed(2).replace(".", ",");
 
     async function carregarProdutos() {
+      if (!ehEquipe) return;
       const { data } = await supabase.from("produtos").select("*").order("nome");
       const lista = (data || []).sort((a, b) =>
         pos(a.categoria) - pos(b.categoria) ||
@@ -246,22 +336,75 @@
           </td>
           <td><input class="preco" inputmode="decimal" data-preco="${p.id}" value="${fmt(p.preco)}"></td>
           <td><input type="checkbox" data-ativo-id="${p.id}" ${p.ativo ? "checked" : ""}></td>
-          <td><button data-del="${p.id}">Excluir</button></td>
+          <td>${ehAdmin ? `<button data-del="${p.id}">Excluir</button>` : ""}</td>
         </tr>`;
       }
       $("prods").innerHTML = html || '<tr><td colspan="5">Nenhum produto cadastrado.</td></tr>';
     }
 
+    // fotos: reduz a imagem e envia para o Storage
+    async function reduzir(file, max = 700, png = false) {
+      const bmp = await createImageBitmap(file);
+      const fator = Math.min(1, max / Math.max(bmp.width, bmp.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(bmp.width * fator);
+      c.height = Math.round(bmp.height * fator);
+      const ctx = c.getContext("2d");
+      if (!png) { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); }
+      ctx.drawImage(bmp, 0, 0, c.width, c.height);
+      return new Promise(ok => png ? c.toBlob(ok, "image/png") : c.toBlob(ok, "image/jpeg", 0.85));
+    }
+    async function enviarFoto(file, max = 700, png = false) {
+      let blob;
+      try { blob = await reduzir(file, max, png); }
+      catch { throw new Error("Não consegui ler essa imagem. Use um arquivo JPG ou PNG."); }
+      const nome = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${png ? "png" : "jpg"}`;
+      const { error } = await supabase.storage.from("produtos")
+        .upload(nome, blob, { contentType: png ? "image/png" : "image/jpeg" });
+      if (error) throw error;
+      return supabase.storage.from("produtos").getPublicUrl(nome).data.publicUrl;
+    }
+    async function apagarArquivo(url) {      // tenta apagar a foto antiga (não é crítico)
+      if (!url) return;
+      const i = url.indexOf("/produtos/");
+      if (i < 0) return;
+      await supabase.storage.from("produtos").remove([decodeURIComponent(url.slice(i + 10))]);
+    }
+
+    $("ativarTodos").onclick = async () => {
+      const { error } = await supabase.from("produtos")
+        .update({ ativo: true }).gt("preco", 0).eq("ativo", false);
+      if (error) erro(error); else carregarProdutos();
+    };
+
+    $("salvarProduto").onclick = async () => {
+      let imagem_url = null;
+      const f = $("foto").files[0];
+      if (f) {
+        try { imagem_url = await enviarFoto(f); }
+        catch (err) { return erro(err); }
+      }
+      const preco = num($("ppreco").value);
+      if (!$("pnome").value.trim() || isNaN(preco)) return alert("Informe nome e preço válidos.");
+      const { error } = await supabase.from("produtos").insert({
+        nome: $("pnome").value.trim(),
+        categoria: $("pcat").value.trim() || null,
+        descricao: $("pdesc").value.trim() || null,
+        preco, imagem_url, ativo: preco > 0,
+      });
+      if (error) return erro(error);
+      ["pnome", "pcat", "pdesc", "ppreco", "foto"].forEach(i => ($(i).value = ""));
+      carregarProdutos();
+    };
+
     // --- enviar várias fotos de uma vez ---
     let loteArquivos = [];
-
     const tokens = s => new Set(
       String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/(\d)([a-z])/g, "$1 $2").replace(/([a-z])(\d)/g, "$1 $2")
         .split(/[^a-z0-9]+/).filter(Boolean));
     const compacto = s => String(s).toLowerCase().normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
-
     function pontuar(nomeArquivo, nomeProduto) {
       if (compacto(nomeArquivo) === compacto(nomeProduto)) return 1;
       const a = tokens(nomeArquivo), b = tokens(nomeProduto);
@@ -269,8 +412,6 @@
       const total = new Set([...a, ...b]).size;
       return total ? comuns / total : 0;
     }
-
-    // sugere o produto pelo nome do arquivo (só quando há um vencedor claro)
     function sugerir(nomeArquivo) {
       let melhor = null, nota = 0, segunda = 0;
       for (const p of produtosLista) {
@@ -280,7 +421,6 @@
       }
       return nota >= 0.5 && nota > segunda ? melhor.id : "";
     }
-
     function desenharLote() {
       if (!loteArquivos.length) { $("lote").innerHTML = ""; return; }
       const opcoes = produtosLista.map(p =>
@@ -299,23 +439,20 @@
                 ${opcoes.replace(`value="${x.produtoId}"`, `value="${x.produtoId}" selected`)}
               </select></td></tr>`).join("")}
           </table></div>
-          <button id="enviarLote">Enviar as fotos escolhidas</button>
-          <button id="cancelarLote" class="sec">Cancelar</button>
+          <button id="enviarLote" style="width:auto">Enviar as fotos escolhidas</button>
+          <button id="cancelarLote" class="sec" style="width:auto">Cancelar</button>
           <p id="progressoLote"></p>
         </div>`;
     }
-
     $("btnLote").onclick = () => $("fotosLote").click();
     $("fotosLote").onchange = () => {
       loteArquivos = [...$("fotosLote").files].map(file => ({
-        file,
-        prev: URL.createObjectURL(file),
+        file, prev: URL.createObjectURL(file),
         produtoId: sugerir(file.name.replace(/\.[^.]+$/, "")),
       }));
       $("fotosLote").value = "";
       desenharLote();
     };
-
     async function enviarLote() {
       const itens = loteArquivos.filter(x => x.produtoId);
       if (!itens.length) return alert("Escolha o produto de pelo menos uma foto.");
@@ -334,7 +471,7 @@
           await apagarArquivo(antiga);
           ok++;
         } catch (err) {
-          falhas.push(`${x.file.name}: ${err.message || "erro"}`);
+          falhas.push(`${x.file.name}: ${traduzirErro(err)}`);
         }
       }
       loteArquivos = [];
@@ -343,35 +480,111 @@
       alert(`${ok} foto(s) enviada(s).` + (falhas.length ? `\n\nNão enviadas:\n${falhas.join("\n")}` : ""));
     }
 
-    $("ativarTodos").onclick = async () => {
-      const { error } = await supabase.from("produtos")
-        .update({ ativo: true }).gt("preco", 0).eq("ativo", false);
-      if (error) alert(error.message); else carregarProdutos();
+    // ---------- cupons (só administrador) ----------
+    $("gerarCodigo").onclick = () => {
+      const letras = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      const sorteio = crypto.getRandomValues(new Uint32Array(6));
+      $("ccodigo").value = [...sorteio].map(n => letras[n % letras.length]).join("");
     };
 
-    $("salvarProduto").onclick = async () => {
-      let imagem_url = null;
-      const f = $("foto").files[0];
-      if (f) {
-        try { imagem_url = await enviarFoto(f); }
-        catch (err) { return alert(err.message); }
-      }
-      const preco = parseFloat($("ppreco").value.replace(",", "."));
-      if (!$("pnome").value.trim() || isNaN(preco)) return alert("Informe nome e preço válidos.");
-      const { error } = await supabase.from("produtos").insert({
-        nome: $("pnome").value.trim(),
-        categoria: $("pcat").value.trim() || null,
-        descricao: $("pdesc").value.trim() || null,
-        preco, imagem_url, ativo: preco > 0,
-      });
-      if (error) return alert(error.message);
-      ["pnome", "pcat", "pdesc", "ppreco", "foto"].forEach(i => ($(i).value = ""));
-      carregarProdutos();
+    async function carregarCupons() {
+      if (!ehAdmin) return;
+      const { data, error } = await supabase.from("cupons").select("*").order("criado_em", { ascending: false });
+      if (error) { $("listaCupons").innerHTML = `<tr><td colspan="5">${esc(traduzirErro(error))}</td></tr>`; return; }
+      $("listaCupons").innerHTML = (data || []).map(c => `<tr>
+        <td><b>${esc(c.codigo)}</b></td>
+        <td>${c.tipo === "percentual" ? Number(c.desconto) + "%" : brl(c.desconto)}</td>
+        <td>${c.usados} de ${c.quantidade}${c.usados >= c.quantidade ? " (esgotado)" : ""}</td>
+        <td><input type="checkbox" data-cativo="${c.id}" ${c.ativo ? "checked" : ""}></td>
+        <td>
+          <button class="sec" data-cqtd="${c.id}" data-valor="${c.quantidade}">Alterar quantidade</button>
+          <button data-cdel="${c.id}">Excluir</button>
+        </td></tr>`).join("") || '<tr><td colspan="5">Nenhum cupom criado ainda.</td></tr>';
+    }
+
+    $("criarCupom").onclick = async () => {
+      const codigo = $("ccodigo").value.trim().toUpperCase();
+      const tipo = $("ctipo").value;
+      const desconto = num($("cdesconto").value);
+      const quantidade = parseInt($("cqtd").value, 10);
+      if (!/^[A-Z0-9_-]{3,20}$/.test(codigo))
+        return alert("O código deve ter de 3 a 20 letras ou números, sem espaços nem acentos.");
+      if (isNaN(desconto) || desconto <= 0) return alert("Informe um desconto maior que zero.");
+      if (tipo === "percentual" && desconto > 100) return alert("A porcentagem não pode passar de 100.");
+      if (!(quantidade >= 1)) return alert("Informe a quantidade de usos (1 ou mais).");
+      const { error } = await supabase.from("cupons").insert({ codigo, tipo, desconto, quantidade });
+      if (error) return error.code === "23505" ? alert("Já existe um cupom com esse código.") : erro(error);
+      ["ccodigo", "cdesconto", "cqtd"].forEach(i => ($(i).value = ""));
+      carregarCupons();
     };
 
-    // --- mudanças em campos (status, preço, ativo) ---
+    // ---------- usuários e cargos (só administrador) ----------
+    let usuarios = [];
+    async function carregarUsuarios() {
+      if (!ehAdmin) return;
+      const { data, error } = await supabase.rpc("listar_usuarios");
+      if (error) { $("listaUsuarios").innerHTML = `<tr><td colspan="4">${esc(traduzirErro(error))}</td></tr>`; return; }
+      usuarios = data || [];
+      desenharUsuarios();
+    }
+    function desenharUsuarios() {
+      const termo = $("buscaUsuario").value.trim().toLowerCase();
+      const lista = usuarios.filter(u => `${u.nome || ""} ${u.email}`.toLowerCase().includes(termo));
+      $("listaUsuarios").innerHTML = lista.map(u => `<tr>
+        <td>${esc(u.nome || "—")}</td>
+        <td>${esc(u.email)}</td>
+        <td>${esc(u.telefone || "")}</td>
+        <td><select data-cargo="${u.id}" ${u.id === session.user.id ? "disabled title='Você não pode mudar o seu próprio cargo'" : ""}>
+          ${Object.entries(CARGOS).map(([k, v]) =>
+            `<option value="${k}" ${k === u.cargo ? "selected" : ""}>${v}</option>`).join("")}
+        </select></td></tr>`).join("") || '<tr><td colspan="4">Nenhum usuário encontrado.</td></tr>';
+    }
+    $("buscaUsuario").oninput = desenharUsuarios;
+
+    // ---------- configurações (só administrador) ----------
+    const PREVIA = { marca1_img: "prev1", marca2_img: "prev2" };
+    let configs = {};
+    async function carregarConfig() {
+      if (!ehAdmin) return;
+      const { data } = await supabase.from("configuracoes").select("*");
+      configs = Object.fromEntries((data || []).map(r => [r.chave, r.valor]));
+      $("ctaxa").value = fmt(num(configs.taxa_entrega ?? 3));
+      $("cminimo").value = fmt(num(configs.pedido_minimo ?? 20));
+      for (const [chave, id] of Object.entries(PREVIA))
+        $(id).innerHTML = configs[chave]
+          ? `<img src="${esc(configs[chave])}" alt="">` : "<small>Sem imagem</small>";
+    }
+
+    $("salvarEntrega").onclick = async () => {
+      const taxa = num($("ctaxa").value), minimo = num($("cminimo").value);
+      if (isNaN(taxa) || taxa < 0 || isNaN(minimo) || minimo < 0)
+        return alert("Informe valores válidos (0 ou mais).");
+      const { error } = await supabase.from("configuracoes").upsert([
+        { chave: "taxa_entrega", valor: String(taxa) },
+        { chave: "pedido_minimo", valor: String(minimo) },
+      ], { onConflict: "chave" });
+      if (error) return erro(error);
+      alert("Configurações salvas!");
+      carregarConfig();
+    };
+
+    // ---------- campos que mudam (status, preço, cargo, fotos...) ----------
     document.addEventListener("change", async e => {
       const t = e.target, d = t.dataset;
+
+      if (d.status) return mudarStatus(d.status, t.value);
+
+      if (d.cargo) {
+        const { error } = await supabase.rpc("definir_cargo", { p_usuario: d.cargo, p_cargo: t.value });
+        if (error) erro(error);
+        return carregarUsuarios();
+      }
+
+      if (d.cativo) {
+        const { error } = await supabase.from("cupons").update({ ativo: t.checked }).eq("id", d.cativo);
+        if (error) erro(error);
+        return;
+      }
 
       if (d.marca) {
         const f = t.files[0];
@@ -383,18 +596,15 @@
             .upsert({ chave: d.marca, valor: url }, { onConflict: "chave" });
           if (error) throw error;
           await apagarArquivo(antiga);
-        } catch (err) {
-          alert(err.message || "Não foi possível enviar a imagem.");
-        }
+        } catch (err) { erro(err); }
         t.value = "";
-        return carregarMarcas();
+        return carregarConfig();
       }
 
       if (d.foto) {
         const f = t.files[0];
         if (!f) return;
-        const celula = t.closest("td");
-        celula.style.opacity = ".4";            // indica que está enviando
+        t.closest("td").style.opacity = ".4";            // indica que está enviando
         try {
           const antiga = produtosPorId[d.foto]?.imagem_url;
           const url = await enviarFoto(f);
@@ -402,16 +612,8 @@
             .update({ imagem_url: url }).eq("id", d.foto);
           if (error) throw error;
           await apagarArquivo(antiga);
-        } catch (err) {
-          alert(err.message || "Não foi possível enviar a foto.");
-        }
+        } catch (err) { erro(err); }
         return carregarProdutos();
-      }
-
-      if (d.status) {
-        const { error } = await supabase.from("pedidos")
-          .update({ status: t.value }).eq("id", d.status);
-        if (error) alert(error.message); else carregarPedidos();
       }
 
       if (d.lote) {                            // trocou o produto de uma foto do lote
@@ -422,7 +624,7 @@
       if (d.desc) {
         const { error } = await supabase.from("produtos")
           .update({ descricao: t.value.trim() || null }).eq("id", d.desc);
-        if (error) alert(error.message);
+        if (error) erro(error);
         return;
       }
 
@@ -430,24 +632,23 @@
         const nome = t.value.trim();
         if (!nome) { alert("O nome não pode ficar vazio."); return carregarProdutos(); }
         const { error } = await supabase.from("produtos").update({ nome }).eq("id", d.nome);
-        if (error) alert(error.message);
+        if (error) erro(error);
         return;
       }
 
       if (d.preco) {
-        const n = parseFloat(t.value.replace(",", "."));
+        const n = num(t.value);
         if (isNaN(n) || n < 0) { alert("Preço inválido."); return carregarProdutos(); }
         const campos = { preco: n };
         if (n === 0) campos.ativo = false; // produto sem preço não vai para a loja
         const { error } = await supabase.from("produtos").update(campos).eq("id", d.preco);
-        if (error) alert(error.message);
-        carregarProdutos();
+        if (error) erro(error);
+        return carregarProdutos();
       }
 
       if (d.ativoId) {
         if (t.checked) {
-          const preco = parseFloat(document.querySelector(`[data-preco="${d.ativoId}"]`)
-            .value.replace(",", "."));
+          const preco = num(document.querySelector(`[data-preco="${d.ativoId}"]`).value);
           if (!(preco > 0)) {
             t.checked = false;
             return alert("Defina um preço maior que zero antes de ativar o produto.");
@@ -455,65 +656,82 @@
         }
         const { error } = await supabase.from("produtos")
           .update({ ativo: t.checked }).eq("id", d.ativoId);
-        if (error) alert(error.message);
+        if (error) erro(error);
       }
     });
 
-    // --- cliques (excluir, bairros) ---
+    // ---------- cliques ----------
     document.addEventListener("click", async e => {
       const d = e.target.dataset;
 
+      if (d.aba) return abrirAba(d.aba);
+
       if (e.target.id === "enviarLote") return enviarLote();
-      if (e.target.id === "cancelarLote") {
-        loteArquivos = [];
-        return desenharLote();
+      if (e.target.id === "cancelarLote") { loteArquivos = []; return desenharLote(); }
+
+      // pedidos
+      if (d.novo) return mudarStatus(d.id, d.novo);
+      if (d.imprimir) {
+        const cartao = e.target.closest(".pedido");
+        cartao.classList.add("imprimir");
+        document.body.classList.add("so-um");
+        window.print();
+        cartao.classList.remove("imprimir");
+        document.body.classList.remove("so-um");
+        return;
+      }
+      if (d.apagar && confirm(`Apagar o pedido #${d.apagar}? Esta ação não pode ser desfeita.`))
+        return apagarPedidos([Number(d.apagar)]);
+      if (e.target.id === "apagarExibidos" && exibidos.length &&
+          confirm(`Apagar os ${exibidos.length} pedidos que estão na tela? Esta ação não pode ser desfeita.`))
+        return apagarPedidos(exibidos);
+
+      // cupons
+      if (d.cdel && confirm("Excluir este cupom?")) {
+        const { error } = await supabase.from("cupons").delete().eq("id", d.cdel);
+        if (error) erro(error);
+        return carregarCupons();
+      }
+      if (d.cqtd) {
+        const v = prompt("Nova quantidade total de usos:", d.valor);
+        if (v === null) return;
+        const n = parseInt(v, 10);
+        if (!(n >= 1)) return alert("Informe um número inteiro maior que zero.");
+        const { error } = await supabase.from("cupons").update({ quantidade: n }).eq("id", d.cqtd);
+        if (error) erro(error);
+        return carregarCupons();
       }
 
+      // imagens do topo
       if (d.rmmarca && confirm("Remover esta imagem do topo da loja?")) {
         const antiga = configs[d.rmmarca];
         const { error } = await supabase.from("configuracoes").delete().eq("chave", d.rmmarca);
-        if (error) return alert(error.message);
+        if (error) return erro(error);
         await apagarArquivo(antiga);
-        carregarMarcas();
+        return carregarConfig();
       }
 
+      // produtos
       if (d.rmfoto && confirm("Remover a foto deste produto?")) {
         const antiga = produtosPorId[d.rmfoto]?.imagem_url;
         const { error } = await supabase.from("produtos")
           .update({ imagem_url: null }).eq("id", d.rmfoto);
-        if (error) return alert(error.message);
+        if (error) return erro(error);
         await apagarArquivo(antiga);
-        carregarProdutos();
+        return carregarProdutos();
       }
-
       if (d.del && confirm("Excluir este produto?")) {
         const antiga = produtosPorId[d.del]?.imagem_url;
-        await supabase.from("produtos").delete().eq("id", d.del);
+        const { error } = await supabase.from("produtos").delete().eq("id", d.del);
+        if (error) return erro(error);
         await apagarArquivo(antiga);
-        carregarProdutos();
-      }
-
-      if (d.btoggle) {
-        await supabase.from("bairros").update({ ativo: d.ativo !== "true" }).eq("id", d.btoggle);
-        carregarBairros();
-      }
-      if (d.bdel && confirm("Excluir este bairro?")) {
-        await supabase.from("bairros").delete().eq("id", d.bdel);
-        carregarBairros();
-      }
-      if (d.btaxa) {
-        const v = prompt("Nova taxa de entrega (ex.: 5,00):", d.valor);
-        if (v === null) return;
-        const n = parseFloat(v.replace(",", "."));
-        if (isNaN(n) || n < 0) return alert("Valor inválido.");
-        const { error } = await supabase.from("bairros").update({ taxa: n }).eq("id", d.btaxa);
-        if (error) alert(error.message); else carregarBairros();
+        return carregarProdutos();
       }
     });
 
-    carregarMarcas();
-    carregarBairros();
-    carregarProdutos();
+    // ---------- início ----------
+    await carregarPedidos();
+    abrirAba(localStorage.getItem("abaPainel") || "pedidos");
   </script>
 </body>
 </html>

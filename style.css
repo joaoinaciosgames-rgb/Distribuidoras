@@ -129,6 +129,22 @@ td button { width: auto; padding: 6px 10px; margin: 0 }
 .barra-pedido:hover { background: var(--vermelho2) }
 .barra-pedido[hidden] { display: none }
 
+
+/* ---------- painel: abas, filtros e ações ---------- */
+.abas { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px }
+.abas button { width: auto; background: #222; color: var(--texto); padding: 10px 14px; margin: 0 }
+.abas button:hover { background: #333 }
+.abas button.ativa { background: var(--amarelo); color: #000 }
+.barra-filtros { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px }
+.barra-filtros button, .barra-filtros select { width: auto; margin: 0 }
+.acoes-pedido { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px }
+.acoes-pedido button, .acoes-pedido select { width: auto; margin: 0 }
+.form-linha { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end }
+.form-linha > * { flex: 1 1 160px; width: auto }
+.form-linha > button { flex: 0 0 auto }
+td select { margin: 0 }
+header nav span { color: var(--suave); margin-right: 6px }
+
 @media (max-width: 800px) {
   main { grid-template-columns: 1fr }
   main > aside.card { position: static }
@@ -142,4 +158,6 @@ td button { width: auto; padding: 6px 10px; margin: 0 }
   .card { background: #fff; color: #000; border: 1px solid #999 }
   .card p, small { color: #333 }
   header, .marcas, select, button, nav, .barra-pedido { display: none }
+  .abas, .barra-filtros, .acoes-pedido { display: none }
+  body.so-um .pedido:not(.imprimir) { display: none }
 }
