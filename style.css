@@ -149,7 +149,15 @@ header nav span { color: var(--suave); margin-right: 6px }
   main { grid-template-columns: 1fr }
   main > aside.card { position: static }
   .marca { height: 90px }
-  header h1 { font-size: 1rem }
+  /* topo no celular: título em cima, links em "botões" embaixo */
+  header { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 14px }
+  header h1 { font-size: 1.05rem; text-align: center }
+  header nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px }
+  header nav a { margin: 0; white-space: nowrap; font-size: .88rem; font-weight: 600;
+    padding: 7px 12px; border: 1px solid var(--borda); border-radius: 20px; background: #111 }
+  header nav a:hover { border-color: var(--amarelo); color: var(--amarelo) }
+  header nav #navCarrinho { background: var(--vermelho); border-color: var(--vermelho); color: #fff }
+  header nav span { width: 100%; text-align: center; margin: 0 }
 }
 
 /* impressão: fundo branco para economizar tinta */
